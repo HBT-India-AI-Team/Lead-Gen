@@ -1,0 +1,2 @@
+// Field-level instruction for the "talkingPoints" key.
+export const TALKING_POINTS_INSTRUCTIONS = `talkingPoints (array of strings): 3-5 short, specific conversation points a Relationship Manager could raise when contacting this lead, each grounded in a concrete fact from the supplied LeadAnalysis JSON (e.g. the tender's industry/category, a recommended product's "reason"/"triggeredBy" field, or a signal from intelligence.signals). Do not propose banking products that are not already present in recommendations.recommendedProducts — reference them, do not invent new ones.`;

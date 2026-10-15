@@ -1,0 +1,252 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   LeadGen AI — SBI Corporate Banking design tokens (single source of truth)
+   ----------------------------------------------------------------------------
+   Every color/radius/shadow the shell and pages use is defined ONCE here as a
+   Tailwind v4 @theme token, so components reference semantic utility classes
+   (bg-primary, text-ink, border-hairline, shadow-card) instead of repeating
+   raw #hex arbitrary values. Change the brand in one place and the whole app
+   follows. Mirrors (and supersedes) the documentation in theme/colors.ts.
+
+   Palette: authentic SBI blue (#005BAC) family + a muted gold accent, used
+   sparingly. Signature element: the "ledger" left-edge accent bar (see the
+   .ledger utilities below) carried across active nav, selected rows, and key
+   stat cards — echoing a passbook/ledger rule.
+   ========================================================================= */
+@theme {
+  /* Brand — SBI blue */
+  --color-primary: #005bac;
+  --color-primary-hover: #004a8c;
+  --color-primary-strong: #003968;
+  --color-primary-tint: #e6f0fa; /* low-opacity fills, hover backgrounds */
+  --color-primary-tint-2: #cce1f5;
+  --color-secondary: #1976d2; /* accents, focus, ledger bar */
+
+  /* Accent — muted SBI gold (used sparingly: highlights, never a flood) */
+  --color-gold: #c89b3c;
+  --color-gold-soft: #f7edd6;
+
+  /* Ink (text) */
+  --color-ink: #0f1b2d;
+  --color-ink-soft: #48576b;
+  --color-ink-muted: #8996a6;
+  --color-ink-inverse: #ffffff;
+
+  /* Surfaces */
+  --color-canvas: #f5f7fa; /* cool-gray app background — gives cards lift */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-surface-sunken: #eef2f6;
+
+  /* Borders / dividers — hairline only */
+  --color-hairline: #e3e8ef;
+  --color-hairline-strong: #d3dbe4;
+
+  /* Semantic status (slightly desaturated so they don't fight brand blue) */
+  --color-success: #2e7d32;
+  --color-success-bg: #e8f5e9;
+  --color-success-border: #a5d6a7;
+  --color-warning: #8a5a00;
+  --color-warning-bg: #fff6e5;
+  --color-warning-border: #f9a825;
+  --color-danger: #c62828;
+  --color-danger-bg: #fdecea;
+  --color-danger-border: #ef9a9a;
+  --color-info: #1976d2;
+  --color-info-bg: #e9f2fc;
+  --color-info-border: #7baee8;
+  --color-neutral: #48576b;
+  --color-neutral-bg: #eef2f6;
+  --color-neutral-border: #d3dbe4;
+
+  /* Radius scale */
+  --radius-control: 8px; /* inputs, buttons, small chips */
+  --radius-card: 12px; /* cards, panels */
+
+  /* Elevation — soft, never paired with a heavy border */
+  --shadow-card: 0 1px 2px rgba(15, 27, 45, 0.04), 0 2px 8px rgba(15, 27, 45, 0.04);
+  --shadow-card-hover: 0 4px 10px rgba(15, 27, 45, 0.06), 0 10px 24px rgba(0, 91, 172, 0.08);
+  --shadow-pop: 0 18px 45px rgba(15, 27, 45, 0.14);
+
+  /* Type */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-canvas);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------------------
+   Focus visibility — keyboard focus must stay obvious on every interactive
+   element (brief requirement). One consistent brand ring, applied only for
+   keyboard navigation so mouse clicks stay clean.
+   ------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbars — quiet, brand-neutral */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c7d0dc;
+  border-radius: 999px;
+}
+
+/* ----------------------------------------------------------------------------
+   Utilities
+   ------------------------------------------------------------------------- */
+
+/* Tabular numerals — for figures, amounts, IDs, timestamps so columns of
+   numbers align cleanly (critical in a banking tool). Apply to tables, stat
+   cards, currency and date cells. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Signature: the ledger accent bar. A blue left-edge rule marking active /
+   selected / key surfaces, echoing a passbook line. Add .ledger to a
+   position:relative-friendly element to draw the 3px blue rule; .ledger-muted
+   renders it as a neutral hairline instead (for resting/non-active state). */
+.ledger {
+  position: relative;
+}
+.ledger::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--color-secondary);
+}
+.ledger-muted::before {
+  background: var(--color-hairline-strong);
+}
+
+/* ----------------------------------------------------------------------------
+   Range slider thumbs (DualRangeSlider + ScoreThresholdSlider)
+   ----------------------------------------------------------------------------
+   These native <input type="range"> get a bare/invisible track (the coloured
+   track/bands are drawn by a div behind them) and only the THUMB is made
+   visible and clickable. The input body has pointer-events:none via Tailwind;
+   pointer-events:auto is re-enabled here on the thumb so the two stacked
+   thumbs of a dual-range each grab independently. Keyboard arrow-key control
+   and screen-reader semantics come free with the native element.
+   ------------------------------------------------------------------------- */
+.dual-range-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 100%;
+  background: transparent;
+  outline: none;
+}
+.dual-range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.25);
+  cursor: pointer;
+}
+.dual-range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.25);
+  cursor: pointer;
+}
+.dual-range-thumb::-moz-range-track {
+  background: transparent;
+}
+.dual-range-thumb:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+  border-color: var(--color-hairline-strong);
+}
+.dual-range-thumb:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+  border-color: var(--color-hairline-strong);
+}
+
+/* Single-thumb threshold slider — thumb border colour is driven by a
+   --thumb-color custom property the component sets per active score band. */
+.score-threshold-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 100%;
+  background: transparent;
+  outline: none;
+}
+.score-threshold-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  height: 22px;
+  width: 22px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 3px solid var(--thumb-color, var(--color-primary));
+  box-shadow: 0 1px 4px rgba(15, 27, 45, 0.3);
+  cursor: pointer;
+}
+.score-threshold-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  height: 22px;
+  width: 22px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 3px solid var(--thumb-color, var(--color-primary));
+  box-shadow: 0 1px 4px rgba(15, 27, 45, 0.3);
+  cursor: pointer;
+}
+.score-threshold-thumb::-moz-range-track {
+  background: transparent;
+}

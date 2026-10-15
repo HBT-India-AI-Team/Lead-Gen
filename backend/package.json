@@ -1,0 +1,38 @@
+{
+  "name": "sbi-leadgen-backend",
+  "version": "1.0.0",
+  "description": "Clean Express.js and MySQL backend for SBI LeadGen Intelligence Platform",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:init": "node src/db/init.js"
+  },
+  "dependencies": {
+    "axios": "^1.19.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "date-fns": "^4.4.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.11.0",
+    "p-limit": "^7.3.1",
+    "playwright": "^1.62.0",
+    "sqlite3": "^6.0.1",
+    "winston": "^3.19.0",
+    "xlsx": "^0.18.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Harinirenu10/sbi-leadgen-intelligence.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Harinirenu10/sbi-leadgen-intelligence/issues"
+  },
+  "homepage": "https://github.com/Harinirenu10/sbi-leadgen-intelligence#readme"
+}

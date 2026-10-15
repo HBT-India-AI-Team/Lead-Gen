@@ -1,0 +1,2 @@
+// Field-level instruction for the "engagementStrategy" key.
+export const ENGAGEMENT_STRATEGY_INSTRUCTIONS = `engagementStrategy (string): A 2-4 sentence recommended approach for engaging this specific lead — suggested channel and tone (e.g. direct outreach if contact details are available in intelligence, vs. a slower relationship-building approach if not), and pacing informed by score.grade/score.score. Do not restate the banking product recommendations here — this is about how and when to engage, not which product to offer.`;
