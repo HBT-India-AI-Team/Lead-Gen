@@ -1,5 +1,5 @@
 // Builds the { system, user } chat messages for the Lead Qualification AI
-// analysis — distinct from ollamaPromptBuilder.js (that one narrates an
+// analysis — distinct from aiAnalysisPromptBuilder.js (that one narrates an
 // already-final Health Check LeadAnalysis into 6 free-text fields; this one
 // asks for a structured, validated qualification judgment from raw
 // evidence). Static instructions only; the sole dynamic input is the real

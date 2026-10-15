@@ -1,4 +1,4 @@
-// LeadGen AI — enterprise banking typography system.
+// Fintech Lead Intelligence — enterprise banking typography system.
 // Single source of truth for font stack + type scale, referenced by
 // components/ui and components/layout instead of ad-hoc text-sizing.
 // Inter throughout (already loaded via index.html), with a clearer size/

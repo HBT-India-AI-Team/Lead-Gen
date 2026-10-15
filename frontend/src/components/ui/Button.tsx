@@ -2,7 +2,7 @@ import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '../../utils/formatters';
 
-// 'success'/'danger' are new in the SBI/YONO theme upgrade; 'primary',
+// 'success'/'danger' were added in the theme upgrade; 'primary',
 // 'secondary', and 'ghost' keep their exact existing names and meaning so
 // every page already calling <Button variant="secondary"> (etc.) keeps
 // working unchanged — only the color values underneath were upgraded.

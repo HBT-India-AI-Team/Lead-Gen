@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   Circle,
-  Clock,
   ClipboardCheck,
   ExternalLink,
   FileSignature,
@@ -24,6 +23,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
+import DecisionTrail from '../components/leads/DecisionTrail';
 import { fetchTenderById, fetchSbiCheck, fetchHealthCheck, fetchProposals, createProposal, approveProposal } from '../services/tendersApi';
 import { formatDate, tenderTitleFrom, tenderLocation, tenderStatus } from '../utils/tenderFormatters';
 
@@ -166,20 +166,20 @@ function SbiCheckCard({ tenderId }: { tenderId: string }) {
         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-tint text-primary">
           <ShieldCheck className="h-4 w-4" strokeWidth={2} />
         </div>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">SBI Customer Check</h3>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Existing Customer Check</h3>
       </div>
 
       <div className="mt-4">
         {!result && !mutation.isPending && !mutation.isError && (
           <Button type="button" onClick={() => mutation.mutate()}>
-            <ShieldCheck className="h-4 w-4" /> Run SBI Customer Check
+            <ShieldCheck className="h-4 w-4" /> Run Existing Customer Check
           </Button>
         )}
 
         {mutation.isPending && (
           <div className="flex items-center gap-3 text-sm text-ink-muted">
             <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-            Checking SBI customer records…
+            Checking existing customer records…
           </div>
         )}
 
@@ -201,7 +201,7 @@ function SbiCheckCard({ tenderId }: { tenderId: string }) {
         {result?.isExistingCustomer && result.matchedCustomer && (
           <div className="grid gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge tone="success">Existing SBI Customer</StatusBadge>
+              <StatusBadge tone="success">Existing Customer</StatusBadge>
               {result.companyChecked && <span className="text-xs text-ink-muted">Checked: {result.companyChecked}</span>}
             </div>
 
@@ -233,11 +233,11 @@ function SbiCheckCard({ tenderId }: { tenderId: string }) {
         {result && !result.isExistingCustomer && (
           <div className="grid gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge tone="info">Not an SBI Customer</StatusBadge>
+              <StatusBadge tone="info">Not an Existing Customer</StatusBadge>
               {result.companyChecked && <span className="text-xs text-ink-muted">Checked: {result.companyChecked}</span>}
             </div>
 
-            <p className="text-sm text-ink-soft">Company is not an SBI Customer.</p>
+            <p className="text-sm text-ink-soft">Company is not an existing customer.</p>
 
             <Button type="button" className="w-fit">
               <HeartPulse className="h-4 w-4" /> Run Health Check
@@ -676,7 +676,7 @@ function HumanReviewCard({ tender }: { tender: Tender }) {
 // data-driven view was removed rather than kept as dead UI.
 const PIPELINE_STAGES = [
   'Tender Selected',
-  'SBI Customer Check',
+  'Existing Customer Check',
   'Health Check',
   'Proposal Generated',
   'Expert Review',
@@ -686,7 +686,7 @@ const PIPELINE_STAGES = [
 
 /**
  * Infers the furthest real, evidenced stage from the same proposal data the
- * Proposal/Human Review cards already fetch. SBI Customer Check and Health
+ * Proposal/Human Review cards already fetch. Existing Customer Check and Health
  * Check have no persisted backend record (both endpoints are stateless,
  * computed on demand — nothing is stored) so their completion can only be
  * inferred once something downstream of them (a persisted proposal) exists,
@@ -777,7 +777,7 @@ function PipelineCard({ tender }: { tender: Tender }) {
                         <Circle
                           className={`h-5 w-5 shrink-0 ${isCurrent ? 'text-primary' : 'text-hairline-strong'}`}
                           strokeWidth={2}
-                          fill={isCurrent ? '#EEF3FB' : 'none'}
+                          fill={isCurrent ? '#F0F5FE' : 'none'}
                         />
                       )}
                       <div className="md:text-center">
@@ -1038,13 +1038,7 @@ function LeadDetails() {
         </div>
       </Card>
 
-      <Card className="p-5">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Activity Timeline</h3>
-        <div className="mt-4 flex items-center gap-3 text-sm text-ink-muted">
-          <Clock className="h-4 w-4 shrink-0" strokeWidth={2} />
-          <span>No activity yet.</span>
-        </div>
-      </Card>
+      <DecisionTrail tenderId={tender.tender_id} />
     </div>
   );
 }

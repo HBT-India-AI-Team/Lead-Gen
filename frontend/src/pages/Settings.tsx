@@ -75,7 +75,7 @@ const SETTINGS_TABS: SettingsTab[] = ['General', ...LEAD_CATEGORY_TABS];
 const DEFAULT_PROFILE = {
   firstName: 'System',
   lastName: 'Administrator',
-  email: 'admin@sbi.com',
+  email: 'admin@leadgen.local',
   phone: '',
   role: 'Admin',
 };
@@ -769,7 +769,7 @@ function Settings() {
       <Card className="p-5">
         <SectionHeader icon={Server} title="System Information" />
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Application" value="LeadGen AI Command Center" />
+          <Field label="Application" value="Fintech Lead Intelligence" />
           <Field label="Frontend" value="React + TypeScript" />
           <Field label="Backend" value="Node.js + Express" />
           <Field label="Database" value="MySQL" />

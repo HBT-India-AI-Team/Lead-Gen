@@ -8,7 +8,8 @@ import {
   resolvePipelineStatusFromLeadStatus,
 } from './scoring/qualificationScoringService.js';
 import { collectQualificationEvidence } from './qualification/evidenceCollectorService.js';
-import { QualificationAiAnalysisService } from './ollama/qualificationAiAnalysisService.js';
+import { QualificationAiAnalysisService } from './llm/qualificationAiAnalysisService.js';
+import { recordDecisionEvent } from './decisionTrailService.js';
 
 // PHASE 1 Lead Qualification workflow entry point. A "lead" is a `tenders`
 // row (see src/db/migrations/addLeadQualificationSchema.js's rationale);
@@ -17,10 +18,10 @@ import { QualificationAiAnalysisService } from './ollama/qualificationAiAnalysis
 // so for now it's only invoked directly (POST /api/leads/:id/qualify).
 //
 // PHASE 2 addition: after the deterministic score below, real evidence is
-// collected and sent to Ollama for an advisory AI analysis (reasoning,
+// collected and sent to the LLM for an advisory AI analysis (reasoning,
 // positive/risk signals, missing evidence). The deterministic score/
 // lead_status/pipeline_status remain 100% authoritative and are computed
-// first, independent of Ollama — a failed/unreachable Ollama call never
+// first, independent of the LLM — a failed/unreachable LLM call never
 // changes them, only leaves qualification_reason.aiAnalysis marked
 // unavailable. See qualificationAiAnalysisService.js's header for why.
 //
@@ -32,7 +33,7 @@ import { QualificationAiAnalysisService } from './ollama/qualificationAiAnalysis
 const qualificationAiAnalysisService = new QualificationAiAnalysisService();
 
 /**
- * Runs the Ollama qualification analysis for one tender's real evidence.
+ * Runs the AI qualification analysis for one tender's real evidence.
  * Best-effort: any failure (unreachable server, invalid/unparseable
  * response, a validation failure) is caught here and reported as an
  * unavailable AI analysis — it never throws, and never invents a
@@ -40,13 +41,32 @@ const qualificationAiAnalysisService = new QualificationAiAnalysisService();
  * technical failure is not a business qualification result" rule.
  */
 async function runAiAnalysis(tender) {
+  let evidence = null;
   try {
-    const evidence = await collectQualificationEvidence(tender);
+    evidence = await collectQualificationEvidence(tender);
     const analysis = await qualificationAiAnalysisService.analyze(evidence);
-    return { status: 'AVAILABLE', ...analysis };
+    return { aiAnalysis: { status: 'AVAILABLE', ...analysis }, evidence };
   } catch (error) {
-    return { status: 'AI_ANALYSIS_UNAVAILABLE', error: error.message };
+    return { aiAnalysis: { status: 'AI_ANALYSIS_UNAVAILABLE', error: error.message }, evidence };
   }
+}
+
+/**
+ * The evidence bundle exactly as the AI saw it, persisted alongside its
+ * answer so a reviewer can check the reasoning against its inputs.
+ * Per-signal raw_data blobs are dropped — they're source-row dumps the
+ * prompt summary already covers, and would bloat qualification_reason.
+ */
+function toEvidenceSnapshot(evidence) {
+  if (!evidence) return null;
+  const withoutRaw = (items = []) => items.map(({ rawData, ...rest }) => rest);
+  return {
+    ...evidence,
+    signals: withoutRaw(evidence.signals),
+    gstEvidence: withoutRaw(evidence.gstEvidence),
+    expansionEvidence: withoutRaw(evidence.expansionEvidence),
+    collectedAt: new Date().toISOString(),
+  };
 }
 
 /**
@@ -103,7 +123,7 @@ export async function qualifyLead(tenderId) {
     // Advisory only — computed from the same real tender row, after the
     // deterministic score/status above are already final. Never awaited
     // into leadStatus/pipelineStatus/score.
-    const aiAnalysis = await runAiAnalysis(tender);
+    const { aiAnalysis, evidence } = await runAiAnalysis(tender);
 
     await tenderRepository.saveQualificationResult(tenderId, {
       pipelineStatus,
@@ -124,11 +144,38 @@ export async function qualifyLead(tenderId) {
             }
           : { available: false },
         aiAnalysis,
+        evidence: toEvidenceSnapshot(evidence),
       },
+    });
+
+    await recordDecisionEvent({
+      tenderId,
+      eventType: 'QUALIFIED',
+      actorType: 'RULES',
+      actor: 'Rules engine',
+      decision: leadStatus,
+      details: { score, pipelineStatus },
+    });
+    await recordDecisionEvent({
+      tenderId,
+      eventType: 'AI_ADVISORY',
+      actorType: 'AI',
+      actor: qualificationAiAnalysisService.llmClient?.model ?? 'AI advisory',
+      decision: aiAnalysis.status === 'AVAILABLE' ? aiAnalysis.classification ?? 'AVAILABLE' : 'UNAVAILABLE',
+      details: aiAnalysis.status === 'AVAILABLE'
+        ? { score: aiAnalysis.score, confidence: aiAnalysis.confidence, recommendedNextAction: aiAnalysis.recommendedNextAction ?? null }
+        : { error: aiAnalysis.error },
     });
 
     return tenderService.getTenderById(tenderId);
   } catch (error) {
+    await recordDecisionEvent({
+      tenderId,
+      eventType: 'QUALIFICATION_FAILED',
+      actorType: 'SYSTEM',
+      actor: 'Qualification pipeline',
+      comment: error.message,
+    });
     // Roll pipeline_status back to READY_FOR_QUALIFY (not one of the fixed
     // enum values has an explicit "error" state) so the tender can be
     // retried; lead_status stays QUALIFY (unresolved). The previous

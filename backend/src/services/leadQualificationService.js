@@ -1,4 +1,4 @@
-import { withRetry } from '../utils/retry.js';
+import { createLlmClient } from './llm/llmClient.js';
 
 // Structured-output schema for the AI Lead Qualification call. Every field
 // is a required, non-null judgment the model must always produce — even a
@@ -102,42 +102,17 @@ function buildPrompt(record) {
   ].join('\n');
 }
 
-async function callQualificationModel(record, { apiKey, model, baseUrl }) {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildPrompt(record) }
-      ],
-      response_format: { type: 'json_schema', json_schema: LEAD_QUALIFICATION_SCHEMA }
-    })
+/**
+ * Qualifies one combined tender_extractions/tenders record. Transient
+ * failures are retried inside the LLM client.
+ */
+export async function qualifyTender(record, { llmClient = createLlmClient() } = {}) {
+  const { data, payload, usage } = await llmClient.chatWithMeta({
+    system: SYSTEM_PROMPT,
+    user: buildPrompt(record),
+    schema: LEAD_QUALIFICATION_SCHEMA.schema,
+    temperature: 0.2
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Lead qualification request failed with HTTP ${response.status}: ${errorBody.slice(0, 300)}`);
-  }
-
-  const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error('Lead qualification response missing message content.');
-  }
-
-  return { fields: JSON.parse(content), payload };
-}
-
-/** Qualifies one combined tender_extractions/tenders record, retrying on transient failures. */
-export async function qualifyTender(record, { apiKey, model, baseUrl }) {
-  return withRetry(
-    () => callQualificationModel(record, { apiKey, model, baseUrl }),
-    { retries: 3, delayMs: 1500, label: 'Lead qualification analysis call' }
-  );
+  return { fields: data, payload, usage };
 }

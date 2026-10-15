@@ -7,6 +7,7 @@ import {
   reviewCommunication,
 } from '../services/communication/communicationPreparationService.js';
 import { getPipelineSummary } from '../services/pipelineSummaryService.js';
+import { getDecisionTrail } from '../services/decisionTrailService.js';
 import { listSignalCategories, listSignals } from '../services/leadSignalService.js';
 import * as tenderProposalRepository from '../repositories/tenderProposalRepository.js';
 import { findMissingFields } from '../utils/validators.js';
@@ -293,6 +294,19 @@ export async function reviewCommunicationHandler(req, res, next) {
     }
 
     const result = await reviewCommunication(req.params.id, { decision, reviewComment }, resolveReviewerIdentity(req));
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+// GET /api/leads/:id/decision-trail — every decision taken on this lead
+// (rules engine, AI advisory, AI proposal, human reviews), oldest first.
+// 404s if the tender doesn't exist. See decisionTrailService.js for how
+// leads that predate the audit table are back-filled.
+export async function decisionTrail(req, res, next) {
+  try {
+    const result = await getDecisionTrail(req.params.id);
     return res.status(200).json(result);
   } catch (error) {
     return next(error);

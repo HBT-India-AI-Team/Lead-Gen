@@ -1,4 +1,4 @@
-import { withRetry } from '../../utils/retry.js';
+import { createLlmClient } from '../llm/llmClient.js';
 import { LEAD_INTELLIGENCE_SYSTEM_PROMPT as SYSTEM_PROMPT } from '../../prompts/leadIntelligencePrompt.js';
 
 // Structured-output schema for the lead intelligence analysis call. Unlike
@@ -73,42 +73,17 @@ function buildPrompt(record) {
   ].join('\n');
 }
 
-async function callAnalysisModel(record, { apiKey, model, baseUrl }) {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildPrompt(record) }
-      ],
-      response_format: { type: 'json_schema', json_schema: LEAD_INTELLIGENCE_SCHEMA }
-    })
+/**
+ * Analyzes one combined tender_extractions/tenders record. Transient
+ * failures are retried inside the LLM client.
+ */
+export async function analyzeTender(record, { llmClient = createLlmClient() } = {}) {
+  const { data, payload, usage } = await llmClient.chatWithMeta({
+    system: SYSTEM_PROMPT,
+    user: buildPrompt(record),
+    schema: LEAD_INTELLIGENCE_SCHEMA.schema,
+    temperature: 0.2
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Lead intelligence request failed with HTTP ${response.status}: ${errorBody.slice(0, 300)}`);
-  }
-
-  const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error('Lead intelligence response missing message content.');
-  }
-
-  return { fields: JSON.parse(content), payload };
-}
-
-/** Analyzes one combined tender_extractions/tenders record, retrying on transient failures. */
-export async function analyzeTender(record, { apiKey, model, baseUrl }) {
-  return withRetry(
-    () => callAnalysisModel(record, { apiKey, model, baseUrl }),
-    { retries: 3, delayMs: 1500, label: 'Lead intelligence analysis call' }
-  );
+  return { fields: data, payload, usage };
 }

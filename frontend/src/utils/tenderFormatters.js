@@ -103,7 +103,7 @@ export function tenderStatus(tender) {
 /**
  * The real `tenders.pipeline_status` enum (see
  * src/db/migrations/addLeadQualificationSchema.js's PIPELINE_STATUSES) —
- * this is the universal SBI RM workflow stage, the same concept regardless
+ * this is the universal RM workflow stage, the same concept regardless
  * of lead category (Tender, GST Registration, Company Expansion, ...), NOT
  * a tender-specific "won/not won" outcome. Every key here is a real DB
  * value; there is no "Cancelled"/"Result Awaited" state anywhere in the

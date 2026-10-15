@@ -1,4 +1,4 @@
--- SBI LeadGen Intelligence Platform — MySQL schema
+-- Fintech Lead Intelligence — MySQL schema
 --
 -- Migrated 1:1 from the original SQLite schema (previously in
 -- src/database.js). Table names, columns, primary keys, and foreign-key

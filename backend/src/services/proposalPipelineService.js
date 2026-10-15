@@ -2,15 +2,16 @@ import * as tenderService from './tenderService.js';
 import * as tenderRepository from '../repositories/tenderRepository.js';
 import * as tenderProposalRepository from '../repositories/tenderProposalRepository.js';
 import { collectProposalEvidence } from './qualification/proposalEvidenceCollectorService.js';
-import { ProposalGenerationService } from './ollama/proposalGenerationService.js';
+import { ProposalGenerationService } from './llm/proposalGenerationService.js';
 import { ApiError } from '../utils/ApiError.js';
+import { recordDecisionEvent } from './decisionTrailService.js';
 
 // PHASE 2 Proposal Generation workflow entry point:
-//   QUALIFIED_GOOD (READY_FOR_PROPOSAL) -> collect real evidence -> Ollama
+//   QUALIFIED_GOOD (READY_FOR_PROPOSAL) -> collect real evidence -> LLM
 //   Proposal Agent -> validate -> persist -> AWAITING_PROPOSAL_REVIEW.
 // Sibling to leadQualificationPipelineService.js (PHASE 1), same
 // orchestration shape: load the real tender, enforce the deterministic gate
-// (never let Ollama decide it), call the AI, persist every real result,
+// (never let the LLM decide it), call the AI, persist every real result,
 // return the tender as actually re-read from MySQL afterward.
 //
 // The deterministic qualification result (lead_status/pipeline_status/
@@ -28,7 +29,7 @@ const proposalGenerationService = new ProposalGenerationService();
  * Throws a 409 ApiError (not a generic 500) when the tender's real,
  * persisted qualification state doesn't authorize proposal generation —
  * QUALIFIED_HITL and QUALIFIED_BAD leads are rejected here, per PHASE 2
- * spec §2, before any evidence is collected or Ollama is ever called.
+ * spec §2, before any evidence is collected or the LLM is ever called.
  * AWAITING_PROPOSAL_REVIEW is also accepted (not just READY_FOR_PROPOSAL)
  * so re-generating an existing proposal for the same lead (idempotent
  * re-run, PHASE 2 spec §11) is not itself blocked by the first run's own
@@ -49,7 +50,7 @@ function assertEligibleForProposal(tender) {
 
 /**
  * Runs the full PHASE 2 workflow for one tender. Throws (never persists a
- * fabricated fallback) if the tender isn't eligible, if Ollama is
+ * fabricated fallback) if the tender isn't eligible, if the LLM is
  * unreachable, or if its response fails validation — see
  * proposalGenerationService.js's #validate() for the exact response
  * contract enforced. On success, persists the validated proposal
@@ -83,6 +84,20 @@ export async function generateProposal(tenderId) {
   await tenderRepository.updatePipelineTransition(tenderId, {
     pipelineStatus: 'AWAITING_PROPOSAL_REVIEW',
     leadStatus: tender.lead_status,
+  });
+
+  await recordDecisionEvent({
+    tenderId,
+    eventType: 'PROPOSAL_GENERATED',
+    actorType: 'AI',
+    actor: proposalGenerationService.llmClient?.model ?? 'AI proposal agent',
+    decision: draft.proposalStatus,
+    details: {
+      proposalScore: draft.proposalScore,
+      recommendedProduct: draft.recommendedProduct?.name ?? null,
+      missingInformation: draft.missingInformation,
+      regenerated: !created,
+    },
   });
 
   const [proposal, refreshedTender] = await Promise.all([
@@ -177,5 +192,16 @@ export async function reviewProposal(tenderId, { decision, reviewComment }, revi
   }
 
   const updated = await tenderProposalRepository.recordProposalReview(row.id, { status: decision, reviewComment, reviewedBy });
+
+  await recordDecisionEvent({
+    tenderId,
+    eventType: 'PROPOSAL_REVIEWED',
+    actorType: 'HUMAN',
+    actor: reviewedBy,
+    decision,
+    comment: reviewComment ?? null,
+    details: { previousStatus: row.status },
+  });
+
   return toProposalReviewShape(tenderId, updated);
 }

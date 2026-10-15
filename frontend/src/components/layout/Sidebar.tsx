@@ -65,27 +65,28 @@ function Sidebar({ collapsed, lastVisited = {} }: SidebarProps) {
         )}
       >
         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-sm font-bold text-ink-inverse shadow-sm">
-          {/* Gold keyhole tick echoes the SBI mark without needing the asset */}
+          {/* Yellow accent dot on the monogram — the header's one accent touch */}
           <span className="relative">
-            L
-            <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-gold" />
+            F
+            <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-accent" />
           </span>
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-ink">LeadGen AI</p>
-            <p className="truncate text-xs font-medium text-ink-muted">SBI Relationship Banking</p>
+            <p className="truncate text-sm font-bold text-ink">Fintech Lead Intelligence</p>
+            <p className="truncate text-xs font-medium text-ink-muted">Relationship Banking</p>
           </div>
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-5">
+      <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-5">
         <ul className="grid gap-1">
           {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
             <li key={path}>
               <NavLink
                 to={lastVisited[path] ?? path}
                 title={collapsed ? label : undefined}
+                aria-label={collapsed ? label : undefined}
                 className={({ isActive }) =>
                   cn(
                     // Signature ledger bar lives on the item itself via
@@ -103,12 +104,12 @@ function Sidebar({ collapsed, lastVisited = {} }: SidebarProps) {
                 {({ isActive }) => (
                   <>
                     {/* Signature ledger bar. On the active (blue-filled) item
-                        it renders in gold so it stays visible against the blue
-                        and ties back to the header's keyhole accent; this is
-                        the one place gold appears in the nav, kept to a single
-                        hairline rule. */}
+                        it renders in the yellow accent so it stays visible against
+                        the blue and ties back to the header's monogram dot; this
+                        is the one place the accent appears in the nav, kept to a
+                        single hairline rule. */}
                     {isActive && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-gold" />
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent" />
                     )}
                     <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
                     {!collapsed && <span className="truncate">{label}</span>}

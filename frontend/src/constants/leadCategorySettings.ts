@@ -60,7 +60,7 @@ export function isWipCategory(category: LeadCategoryOption): boolean {
 // Shared band palette reused across score types (Poor→Excellent).
 const BAND_POOR = '#C62828';
 const BAND_FAIR = '#B76513';
-const BAND_GOOD = '#2563A7';
+const BAND_GOOD = '#1967D2';
 const BAND_EXCELLENT = '#2E7D32';
 
 export interface ScoreDefinition {

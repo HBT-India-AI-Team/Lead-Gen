@@ -5,7 +5,7 @@ import { TALKING_POINTS_INSTRUCTIONS } from '../../prompts/talkingPointsPrompt.j
 import { ENGAGEMENT_STRATEGY_INSTRUCTIONS } from '../../prompts/engagementStrategyPrompt.js';
 import { NEXT_BEST_ACTION_INSTRUCTIONS } from '../../prompts/nextBestActionPrompt.js';
 
-// Assembles the full Ollama prompt from static instruction text only —
+// Assembles the full AI analysis prompt from static instruction text only —
 // no business logic, no scoring/recommendation computation. The only
 // dynamic input is the LeadAnalysis JSON itself, embedded verbatim as the
 // single source of facts the model is allowed to use.
@@ -39,13 +39,13 @@ const FIELD_INSTRUCTIONS = [
 ].join('\n\n');
 
 /**
- * Builds the { system, user } chat messages sent to Ollama for one
+ * Builds the { system, user } chat messages sent to the LLM for one
  * LeadAnalysis object. `system` carries the assistant's role and hard
  * rules (never touch the score/recommendations, never invent facts,
  * JSON-only output); `user` carries the per-field guidance plus the
  * LeadAnalysis JSON itself, the only factual context the model receives.
  */
-export function buildOllamaPrompt(leadAnalysis) {
+export function buildAiAnalysisPrompt(leadAnalysis) {
   const leadAnalysisJson = JSON.stringify(leadAnalysis, null, 2);
 
   const user = [

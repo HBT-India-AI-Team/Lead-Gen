@@ -18,6 +18,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import { ScoreBreakdownToggle, ScoreBreakdownPanel } from '../components/leads/ScoreBreakdown';
 import type { QualificationFactors } from '../components/leads/ScoreBreakdown';
+import DecisionTrail from '../components/leads/DecisionTrail';
 import { fetchLeadById, fetchLeadCommunication, fetchLeads, prepareLeadCommunication, reviewLeadCommunication } from '../services/leadsApi';
 import { formatDate, tenderTitleFrom, tenderLocation } from '../utils/tenderFormatters';
 
@@ -349,6 +350,7 @@ function CommunicationPanel({ tenderId }: { tenderId: string }) {
       reviewLeadCommunication(tenderId, { decision, reviewComment: reviewComment.trim() || undefined }) as Promise<Communication>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead-communication', tenderId] });
+      queryClient.invalidateQueries({ queryKey: ['lead-decision-trail', tenderId] });
       setPendingDecision(null);
       setReviewComment('');
     },
@@ -438,7 +440,7 @@ function CommunicationPanel({ tenderId }: { tenderId: string }) {
           </div>
           {lead.qualification_score != null && scoreBreakdownExpanded && (
             <div className="mt-3">
-              <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} />
+              <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} score={lead.qualification_score} />
             </div>
           )}
           {aiAnalysis && aiAnalysis.status === 'AVAILABLE' && (
@@ -586,8 +588,9 @@ function CommunicationPanel({ tenderId }: { tenderId: string }) {
               ) : (
                 <div className="mt-3 grid gap-4">
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Review Comment</label>
+                    <label htmlFor="comm-review-comment" className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Review Comment</label>
                     <textarea
+                      id="comm-review-comment"
                       className="mt-1.5 h-24 min-h-0 w-full resize-none rounded-lg border border-hairline-strong bg-white px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-primary focus:ring-4 focus:ring-primary/10"
                       placeholder="Optional — e.g. &quot;Approved for customer communication.&quot;"
                       value={reviewComment}
@@ -633,6 +636,8 @@ function CommunicationPanel({ tenderId }: { tenderId: string }) {
           </>
         )}
       </Card>
+
+      <DecisionTrail tenderId={tenderId} />
     </div>
   );
 }

@@ -12,6 +12,11 @@ interface QualificationFactor {
 }
 
 export interface QualificationFactors {
+  tenderValue?: QualificationFactor;
+  governmentRelevance?: QualificationFactor;
+  businessFit?: QualificationFactor;
+  dataCompleteness?: QualificationFactor;
+  winningCompanyAvailability?: QualificationFactor;
   probe42Availability?: QualificationFactor;
   creditRating?: QualificationFactor;
   revenueStrength?: QualificationFactor;
@@ -19,24 +24,48 @@ export interface QualificationFactors {
   complianceStatus?: QualificationFactor;
 }
 
-// Plain relationship-manager-facing labels for the 5 Probe42-informed
-// factors, in the order a reviewer would want to scan them — not the
-// internal factor keys (revenueStrength, complianceStatus, ...).
-const FACTOR_ROWS: { key: keyof QualificationFactors; label: string }[] = [
-  { key: 'revenueStrength', label: 'Revenue' },
-  { key: 'netProfitStrength', label: 'Net Profit' },
-  { key: 'creditRating', label: 'Credit Rating' },
-  { key: 'complianceStatus', label: 'Compliance' },
-  { key: 'probe42Availability', label: 'Probe42 Profile' },
+type FactorKey = keyof QualificationFactors;
+
+// Max points per factor — mirrors backend/src/services/scoring/
+// qualificationRules.js (the ten weights sum to exactly 100). Kept here
+// only so each row can show "earned / possible"; the earned points always
+// come from the persisted factor, never recomputed.
+const FACTOR_GROUPS: { source: string; rows: { key: FactorKey; label: string; max: number }[] }[] = [
+  {
+    source: 'Tender record',
+    rows: [
+      { key: 'tenderValue', label: 'Tender Value', max: 15 },
+      { key: 'governmentRelevance', label: 'Government Buyer', max: 10 },
+      { key: 'businessFit', label: 'Business Fit', max: 10 },
+      { key: 'dataCompleteness', label: 'Data Completeness', max: 10 },
+      { key: 'winningCompanyAvailability', label: 'Winning Company', max: 10 },
+    ],
+  },
+  {
+    source: 'Company registry (Probe42)',
+    rows: [
+      { key: 'probe42Availability', label: 'Probe42 Profile', max: 10 },
+      { key: 'revenueStrength', label: 'Revenue', max: 12 },
+      { key: 'netProfitStrength', label: 'Net Profit', max: 12 },
+      { key: 'creditRating', label: 'Credit Rating', max: 6 },
+      { key: 'complianceStatus', label: 'Compliance', max: 5 },
+    ],
+  },
+];
+
+// Fixed business thresholds — mirrors qualificationRules.js
+// (QUALIFIED_BAD_MAX / QUALIFIED_HITL_MIN / QUALIFIED_GOOD_MIN).
+const BANDS = [
+  { label: 'Bad', range: '0–59', from: 0, to: 60, className: 'bg-danger-bg text-danger' },
+  { label: 'Human review', range: '60–79', from: 60, to: 80, className: 'bg-warning-bg text-warning' },
+  { label: 'Good', range: '80–100', from: 80, to: 100, className: 'bg-success-bg text-success' },
 ];
 
 /**
- * Small "i" trigger meant to sit inline right beside the score number itself
- * — not a full-width banner. Purely presentational: expand/collapse state
- * lives in the parent page, since the icon (beside the score) and the panel
- * it reveals (below the score/status row) sit in two different spots in the
- * layout and need to stay in sync without owning a DOM position of their
- * own.
+ * "Why this score?" trigger meant to sit inline right beside the score
+ * number. Purely presentational: expand/collapse state lives in the parent
+ * page, since the icon and the panel it reveals sit in two different spots
+ * in the layout. 24px hit area for the 16px icon.
  */
 export function ScoreBreakdownToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
   return (
@@ -46,36 +75,71 @@ export function ScoreBreakdownToggle({ expanded, onToggle }: { expanded: boolean
       aria-label="Why this score?"
       aria-expanded={expanded}
       title="Why this score?"
-      className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-primary ${expanded ? 'text-primary' : ''}`}
+      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${expanded ? 'text-primary' : ''}`}
     >
-      <Info className="h-4 w-4" strokeWidth={2} />
+      <Info className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
     </button>
   );
 }
 
-/**
- * The real per-factor breakdown behind a qualification score — same
- * content/layout as before this became icon-triggered. A factor missing
- * from `factors` entirely reads as "Not available", same as a factor the
- * scorer itself marked unmatched (its own label already says e.g. "Revenue
- * not disclosed" / "Credit rating unavailable"). Visibility is controlled
- * entirely by the parent (conditional render) — this component has no
- * expand/collapse state of its own.
- */
-export function ScoreBreakdownPanel({ factors }: { factors: QualificationFactors | null | undefined }) {
+function ScoreBands({ score }: { score: number }) {
   return (
-    <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 rounded-lg border border-hairline bg-surface-muted p-3 sm:grid-cols-2">
-      {FACTOR_ROWS.map(({ key, label }) => {
-        const factor = factors?.[key];
-        return (
-          <div key={key} className="flex items-baseline justify-between gap-3 text-xs">
-            <span className="shrink-0 font-semibold text-ink-muted">{label}</span>
-            <span className={`truncate text-right ${factor?.matched ? 'text-ink' : 'text-ink-muted'}`}>
-              {factor?.label ?? 'Not available'}
-            </span>
+    <div>
+      <div className="relative flex h-6 overflow-hidden rounded-md text-[10px] font-semibold" aria-hidden="true">
+        {BANDS.map((band) => (
+          <div key={band.label} className={`flex items-center justify-center ${band.className}`} style={{ width: `${band.to - band.from}%` }}>
+            {band.label} {band.range}
           </div>
-        );
-      })}
+        ))}
+        <div className="absolute inset-y-0 w-0.5 bg-ink" style={{ left: `clamp(0%, ${score}%, calc(100% - 2px))` }} />
+      </div>
+      <p className="sr-only">
+        Score {score} of 100. Bands: 0 to 59 bad, 60 to 79 human review, 80 to 100 good.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The real per-factor breakdown behind a qualification score: all ten
+ * factors, grouped by where the data came from, each with the points it
+ * actually earned out of its maximum. A factor missing from `factors`
+ * reads as "Not available" with 0 points, same as one the scorer marked
+ * unmatched. Visibility is controlled by the parent.
+ */
+export function ScoreBreakdownPanel({ factors, score }: { factors: QualificationFactors | null | undefined; score?: number | null }) {
+  return (
+    <div className="grid gap-4 rounded-lg border border-hairline bg-surface-muted p-3">
+      {score != null && <ScoreBands score={score} />}
+
+      {FACTOR_GROUPS.map((group) => (
+        <section key={group.source} aria-label={`${group.source} factors`}>
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">Source: {group.source}</h4>
+          <dl className="mt-1.5 grid gap-1.5">
+            {group.rows.map(({ key, label, max }) => {
+              const factor = factors?.[key];
+              const points = factor?.points ?? 0;
+              return (
+                <div key={key} className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_auto] items-center gap-3 text-xs">
+                  <dt className="truncate font-semibold text-ink-soft">{label}</dt>
+                  <dd className={`truncate ${factor?.matched ? 'text-ink' : 'text-ink-muted'}`} title={factor?.label ?? 'Not available'}>
+                    {factor?.label ?? 'Not available'}
+                  </dd>
+                  <dd className="flex items-center gap-2">
+                    <span className="h-1.5 w-12 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
+                      <span className="block h-full rounded-full bg-primary" style={{ width: `${(points / max) * 100}%` }} />
+                    </span>
+                    <span className="tabular w-10 text-right font-semibold text-ink">
+                      {points}<span className="font-normal text-ink-muted">/{max}</span>
+                      <span className="sr-only"> points</span>
+                    </span>
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </section>
+      ))}
     </div>
   );
 }

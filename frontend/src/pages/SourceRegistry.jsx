@@ -59,7 +59,7 @@ const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-4
 const labelClass = 'grid gap-1.5 text-xs font-semibold uppercase text-slate-500';
 
 function LoginGate({ onSuccess }) {
-  const [email, setEmail] = useState('admin@sbi.com');
+  const [email, setEmail] = useState('admin@leadgen.local');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

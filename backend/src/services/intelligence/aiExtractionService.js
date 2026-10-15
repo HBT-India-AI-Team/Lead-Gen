@@ -1,4 +1,4 @@
-import { withRetry } from '../../utils/retry.js';
+import { createLlmClient } from '../llm/llmClient.js';
 import { TENDER_EXTRACTION_SYSTEM_PROMPT as SYSTEM_PROMPT } from '../../prompts/tenderExtractionPrompt.js';
 
 // Structured-output schema for the tender field extraction call. Every
@@ -40,42 +40,17 @@ function buildPrompt(cleanedText) {
   return `Extract the fields from the following tender record:\n\n${cleanedText}`;
 }
 
-async function callExtractionModel(cleanedText, { apiKey, model, baseUrl }) {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildPrompt(cleanedText) }
-      ],
-      response_format: { type: 'json_schema', json_schema: TENDER_EXTRACTION_SCHEMA }
-    })
+/**
+ * Extracts the normalized tender fields from one document's cleaned_text.
+ * Transient failures are retried inside the LLM client.
+ */
+export async function extractTenderFields(cleanedText, { llmClient = createLlmClient() } = {}) {
+  const { data, payload, usage } = await llmClient.chatWithMeta({
+    system: SYSTEM_PROMPT,
+    user: buildPrompt(cleanedText),
+    schema: TENDER_EXTRACTION_SCHEMA.schema,
+    temperature: 0
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`AI extraction request failed with HTTP ${response.status}: ${errorBody.slice(0, 300)}`);
-  }
-
-  const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error('AI extraction response missing message content.');
-  }
-
-  return { fields: JSON.parse(content), payload };
-}
-
-/** Extracts the normalized tender fields from one document's cleaned_text, retrying on transient failures. */
-export async function extractTenderFields(cleanedText, { apiKey, model, baseUrl }) {
-  return withRetry(
-    () => callExtractionModel(cleanedText, { apiKey, model, baseUrl }),
-    { retries: 3, delayMs: 1500, label: 'AI extraction call' }
-  );
+  return { fields: data, payload, usage };
 }

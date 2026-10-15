@@ -1,8 +1,8 @@
-// LeadGen AI — SBI/YONO-inspired enterprise banking color system.
+// Fintech Lead Intelligence — Google/Gemini-inspired color system.
 //
-// Primary (#005BAC) and Secondary (#1976D2) are the two brand blues this
-// phase specifies; every other primary shade below is a computed tint/shade
-// around #005BAC (kept at the 600 slot) so components can reach for a
+// Primary (#1A73E8) and Secondary (#1967D2) are the two brand blues, taken
+// from the Google Blue scale; every other primary shade below is a step on
+// that scale around #1A73E8 (kept at the 600 slot) so components can reach for a
 // lighter/darker step without introducing new ad-hoc colors. Success/
 // Warning/Error use the exact specified hex as the accent/border color;
 // where that exact value would fail text contrast on a light surface (the
@@ -12,28 +12,28 @@
 //
 // Every component in components/ui and components/layout should draw its
 // color values from here (mirrored as literal Tailwind arbitrary-value
-// classes, e.g. `primary.600` below maps to `bg-[#005BAC]`) rather than
+// classes, e.g. `primary.600` below maps to `bg-[#1A73E8]`) rather than
 // introducing new colors, so the whole shell reads as one system.
 
 export const colors = {
   primary: {
-    50: '#E6F0FA',
-    100: '#CCE1F5',
-    200: '#99C3EB',
-    300: '#66A5E0',
-    400: '#337FC7',
-    500: '#0068C2',
-    600: '#005BAC', // Primary (spec)
-    700: '#004A8C',
-    800: '#003968',
-    900: '#002846',
+    50: '#E8F0FE',
+    100: '#D2E3FC',
+    200: '#AECBFA',
+    300: '#8AB4F8',
+    400: '#669DF6',
+    500: '#4285F4',
+    600: '#1A73E8', // Primary (spec)
+    700: '#1967D2',
+    800: '#185ABC',
+    900: '#174EA6',
   },
   secondary: {
-    50: '#E9F2FC',
-    100: '#D3E5F9',
-    300: '#7BAEE8',
-    500: '#1976D2', // Secondary (spec)
-    700: '#125A9E',
+    50: '#E8F0FE',
+    100: '#D2E3FC',
+    300: '#8AB4F8',
+    500: '#1967D2', // Secondary (spec)
+    700: '#185ABC',
   },
   surface: {
     canvas: '#F5F7FA', // Background (spec)
@@ -49,14 +49,14 @@ export const colors = {
   text: {
     primary: '#0F1B2D',
     secondary: '#48576B',
-    muted: '#8996A6',
+    muted: '#5F6B7A', // AA on canvas/surface (was #8996A6, 2.8:1)
     inverse: '#FFFFFF',
   },
   status: {
     success: { fg: '#2E7D32', bg: '#E8F5E9', border: '#A5D6A7' }, // Approved
     warning: { fg: '#8A5A00', bg: '#FFF6E5', border: '#F9A825' }, // Pending
     danger: { fg: '#C62828', bg: '#FDECEA', border: '#EF9A9A' }, // Rejected
-    info: { fg: '#1976D2', bg: '#E9F2FC', border: '#7BAEE8' }, // Active
+    info: { fg: '#1967D2', bg: '#E8F0FE', border: '#8AB4F8' }, // Active
     neutral: { fg: '#48576B', bg: '#EEF2F6', border: '#D3DBE4' },
   },
 } as const;

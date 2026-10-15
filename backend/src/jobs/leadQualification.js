@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createLlmClient } from '../services/llm/llmClient.js';
 import { withTransaction } from '../config/database.js';
 import { ensureLeadAnalysisSchema } from '../db/migrations/addLeadAnalysisTable.js';
 import { findPendingAnalysis, saveAnalysis } from '../repositories/leadAnalysisRepository.js';
@@ -24,12 +25,8 @@ const logger = createLogger('lead-qualification');
 // dropped with the rollback (same pattern as src/jobs/aiExtraction.js).
 
 export async function runLeadQualification() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY missing from .env');
-  }
-  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const llmClient = createLlmClient();
+  const { model } = llmClient;
 
   await ensureLeadAnalysisSchema();
 
@@ -48,7 +45,7 @@ export async function runLeadQualification() {
 
   for (const record of records) {
     try {
-      const { fields, payload } = await qualifyTender(record, { apiKey, model, baseUrl });
+      const { fields, payload, usage: callUsage } = await qualifyTender(record, { llmClient });
 
       await withTransaction((tx) =>
         saveAnalysis(
@@ -63,11 +60,9 @@ export async function runLeadQualification() {
         )
       );
 
-      if (payload.usage) {
-        usage.prompt += payload.usage.prompt_tokens || 0;
-        usage.completion += payload.usage.completion_tokens || 0;
-        usage.total += payload.usage.total_tokens || 0;
-      }
+      usage.prompt += callUsage.prompt;
+      usage.completion += callUsage.completion;
+      usage.total += callUsage.total;
 
       qualified++;
       logger.info('Tender qualified.', {

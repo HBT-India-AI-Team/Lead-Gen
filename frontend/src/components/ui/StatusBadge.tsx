@@ -3,7 +3,7 @@ import { cn } from '../../utils/formatters';
 
 // Existing tone names/prop contract are unchanged (every page already calls
 // <StatusBadge tone="success"> etc.) — only the underlying colors were
-// upgraded to the SBI/YONO banking palette. In this system's typical
+// upgraded to the banking palette in index.css. In this system's typical
 // banking usage each tone reads as: success = Approved, warning = Pending,
 // danger = Rejected, info = Active.
 export type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
