@@ -1,4 +1,5 @@
 import { run, all, get } from '../config/database.js';
+import { parseJsonColumns, parseJsonColumnsAll } from '../utils/jsonColumns.js';
 import * as leadSignalRepository from './leadSignalRepository.js';
 import * as probe42Repository from './probe42Repository.js';
 
@@ -8,6 +9,11 @@ import * as probe42Repository from './probe42Repository.js';
 // in the document-processing pipeline.
 
 const defaultDb = { run };
+
+// JSON columns on `tenders`. Parsed on read because a database restored
+// from a MariaDB dump returns them as longtext strings (see
+// src/utils/jsonColumns.js).
+const TENDER_JSON_COLUMNS = ['qualification_reason'];
 
 // Whitelisted so `sort_by` (a raw query-string value) is never interpolated
 // into SQL directly — mirrors src/services/sourceService.js's SORTABLE_COLUMNS.
@@ -415,7 +421,7 @@ export async function listTenders({
   );
 
   return {
-    tenders,
+    tenders: parseJsonColumnsAll(tenders, TENDER_JSON_COLUMNS),
     pagination: {
       page: pageNum,
       limit: limitNum,
@@ -431,7 +437,8 @@ export async function listTenders({
 
 /** Looks up a tender by its natural key (tender_id), not the numeric `id` PK — every other part of this app (URLs, dedupe checks, the scraper) already keys off tender_id. Returns undefined if not found; callers decide whether that's a 404. */
 export async function getTenderById(tenderId) {
-  return get('SELECT * FROM tenders WHERE tender_id = ?', [tenderId]);
+  const row = await get('SELECT * FROM tenders WHERE tender_id = ?', [tenderId]);
+  return parseJsonColumns(row, TENDER_JSON_COLUMNS);
 }
 
 /**

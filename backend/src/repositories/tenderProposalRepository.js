@@ -1,4 +1,14 @@
 import { run, all, get } from '../config/database.js';
+import { parseJsonColumns, parseJsonColumnsAll } from '../utils/jsonColumns.js';
+
+// Same MariaDB/longtext caveat as tenderRepository.js.
+const PROPOSAL_JSON_COLUMNS = [
+  'recommended_product',
+  'estimated_funding_requirement',
+  'rationale',
+  'missing_information',
+  'raw_ai_response',
+];
 
 export async function createProposal({ tenderId, winningCompanyName, proposalSummary, emailDraft }) {
   const result = await run(
@@ -11,11 +21,13 @@ export async function createProposal({ tenderId, winningCompanyName, proposalSum
 }
 
 export async function listByTenderId(tenderId) {
-  return all('SELECT * FROM tender_proposals WHERE tender_id = ? ORDER BY id DESC', [tenderId]);
+  const rows = await all('SELECT * FROM tender_proposals WHERE tender_id = ? ORDER BY id DESC', [tenderId]);
+  return parseJsonColumnsAll(rows, PROPOSAL_JSON_COLUMNS);
 }
 
 export async function getById(id) {
-  return get('SELECT * FROM tender_proposals WHERE id = ?', [id]);
+  const row = await get('SELECT * FROM tender_proposals WHERE id = ?', [id]);
+  return parseJsonColumns(row, PROPOSAL_JSON_COLUMNS);
 }
 
 export async function approveProposal(id) {
@@ -40,10 +52,11 @@ export async function approveProposal(id) {
  * always resolves to exactly one real row deterministically.
  */
 export async function findLatestGeneratedProposalByTenderId(tenderId) {
-  return get(
+  const row = await get(
     `SELECT * FROM tender_proposals WHERE tender_id = ? AND raw_ai_response IS NOT NULL ORDER BY id DESC LIMIT 1`,
     [tenderId]
   );
+  return parseJsonColumns(row, PROPOSAL_JSON_COLUMNS);
 }
 
 /**
