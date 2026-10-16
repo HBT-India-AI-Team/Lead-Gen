@@ -23,11 +23,10 @@
 //     /qualificationRules.js's separate tender-level qualification score,
 //     which blends revenue/profit with tender-specific factors — these four
 //     are standalone, company-level scores.
-//   • Only "Tender" has real backing data end-to-end. Every other category
-//     (New company registration, GST registration, Company expansion
-//     (hiring), Government scheme approvals) has no dedicated lead data or
-//     scoring fields, so those tabs render a disabled Work-In-Progress
-//     placeholder instead of a form with nothing real behind it.
+//   • Every category's settings are real and persisted per category_key.
+//     What differs between them is how much signal data has been ingested so
+//     far, which each panel states from the live counts rather than hiding
+//     the controls behind a placeholder.
 
 import { LEAD_CATEGORY_OPTIONS } from './settingsPreferences';
 import type { LeadCategoryOption } from './settingsPreferences';
@@ -39,21 +38,21 @@ export const LEAD_CATEGORY_SETTINGS_STORAGE_KEY = 'leadgen.settings.leadCategory
 // Leads page filter uses.
 export const LEAD_CATEGORY_TABS = LEAD_CATEGORY_OPTIONS;
 
-// Categories with no real lead data / scoring fields yet — rendered as a
-// disabled "Work In Progress" tab instead of fabricated controls. Only
-// "Tender" has real backing data (tenders/lead_signals/probe42_demo_profiles)
-// today, so every other category stays WIP rather than shipping a form with
+// Every category's panel renders the same real, persisted controls; the
+// per-category signal counts shown there come from the live signals feed.
 // nothing real behind it.
-export const WIP_CATEGORIES: readonly LeadCategoryOption[] = [
-  'New company registration',
-  'GST registration',
-  'Company expansion (hiring)',
-  'Government scheme approvals',
-] as const;
-
-export function isWipCategory(category: LeadCategoryOption): boolean {
-  return WIP_CATEGORIES.includes(category);
-}
+// Which lead_signals.signal_type feeds each category. Categories map to a
+// real signal feed the ingestion jobs write (see
+// src/repositories/leadSignalRepository.js); "Government scheme approvals"
+// has no signal type in the backend yet, so it maps to null and the settings
+// panel says so instead of implying a feed exists.
+export const SIGNAL_TYPE_BY_CATEGORY: Record<LeadCategoryOption, string | null> = {
+  Tender: 'GOVERNMENT_TENDER_WIN',
+  'New company registration': 'NEW_COMPANY_REGISTRATION',
+  'GST registration': 'GST_REGISTRATION',
+  'Company expansion (hiring)': 'COMPANY_EXPANSION',
+  'Government scheme approvals': null,
+};
 
 // ---- Score threshold definitions --------------------------------------
 // Shared band palette reused across score types (Poor→Excellent).

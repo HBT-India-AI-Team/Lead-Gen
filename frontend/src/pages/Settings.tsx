@@ -70,11 +70,11 @@ import type {
   LeadStatusOption,
   LeadSourceOption,
 } from '../constants/settingsPreferences';
-import { LEAD_CATEGORY_TABS, isWipCategory } from '../constants/leadCategorySettings';
+import { LEAD_CATEGORY_TABS } from '../constants/leadCategorySettings';
 
 // Settings' own top-level tab bar: "General" (account/system settings, this
 // page's previous flat stack of cards) plus one tab per real lead category
-// (Tender + the WIP placeholders) — a single unified tablist rather than
+// (one per lead category) — a single unified tablist rather than
 // General living as an untabbed stack above a separately-tabbed Lead
 // Management section.
 type SettingsTab = 'General' | LeadCategoryOption;
@@ -373,14 +373,13 @@ function Settings() {
       </div>
 
       {/* Master tab bar — General (account/system settings) plus one tab per
-          real lead category. Same pill + WIP-badge visual pattern the old
+          real lead category. Same pill visual pattern the old
           per-feature Lead Management tab bar used, now promoted to the page
           level since General needed to sit alongside it as an equal tab
           rather than an untabbed stack above it. */}
       <div role="tablist" aria-label="Settings sections" className="flex flex-wrap gap-1.5 border-b border-hairline pb-3">
         {SETTINGS_TABS.map((tab) => {
           const isActive = tab === activeSettingsTab;
-          const tabWip = tab !== 'General' && isWipCategory(tab);
           return (
             <button
               key={tab}
@@ -394,16 +393,6 @@ function Settings() {
               )}
             >
               {tab}
-              {tabWip && (
-                <span
-                  className={cn(
-                    'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
-                    isActive ? 'bg-white/25 text-white' : 'bg-warning-bg text-warning'
-                  )}
-                >
-                  WIP
-                </span>
-              )}
             </button>
           );
         })}

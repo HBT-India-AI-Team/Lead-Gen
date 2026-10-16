@@ -53,7 +53,7 @@ const configuredOrigins = (process.env.CORS_ORIGINS || '')
 
 app.use(cors({
   origin: [...LOCAL_ORIGINS, ...configuredOrigins],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 

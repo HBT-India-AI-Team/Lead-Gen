@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Construction, Loader2, SearchX } from 'lucide-react';
+import { CheckCircle2, Loader2, SearchX } from 'lucide-react';
 import Card from '../ui/Card';
+import { fetchLeadSignalCategories } from '../../services/leadsApi';
 import Button from '../ui/Button';
 import SearchBox from '../ui/SearchBox';
 import StatusBadge from '../ui/StatusBadge';
@@ -20,7 +22,7 @@ import {
   TENDER_VALUE_STEP,
   DEFAULT_CATEGORY_SETTINGS,
   DEFAULT_SCORE_THRESHOLDS,
-  isWipCategory,
+  SIGNAL_TYPE_BY_CATEGORY,
   readLeadCategorySettings,
   writeLeadCategorySettings,
 } from '../../constants/leadCategorySettings';
@@ -219,7 +221,6 @@ function LeadCategorySettings({ category, pushToast }: Props) {
 
   const current: CategorySettings = draft[category] ?? DEFAULT_CATEGORY_SETTINGS;
   const dirty = JSON.stringify(saved[category]) !== JSON.stringify(draft[category]);
-  const wip = isWipCategory(category);
 
   function updateCurrent(patch: Partial<CategorySettings>) {
     setDraft((prev) => ({ ...prev, [category]: { ...prev[category], ...patch } }));
@@ -278,30 +279,45 @@ function LeadCategorySettings({ category, pushToast }: Props) {
     updateCurrent({ tenderValueMax: Number.isFinite(clamped) ? clamped : current.tenderValueMin });
   }
 
-  if (wip) {
-    return (
-      <Card className="p-5">
-        <div className="grid place-items-center gap-3 rounded-xl border border-dashed border-hairline-strong bg-surface-muted px-6 py-10 text-center">
-          <div className="grid h-11 w-11 place-items-center rounded-full bg-warning-bg text-warning">
-            <Construction className="h-5 w-5" strokeWidth={2} />
-          </div>
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-ink-soft">{category}</p>
-            <span className="rounded-full bg-warning-bg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
-              Work in Progress
-            </span>
-          </div>
-          <p className="max-w-md text-xs leading-relaxed text-ink-muted">
-            This category&apos;s settings are coming soon — no dedicated lead data or scoring fields exist for it in
-            the backend yet, so no real controls are shown here rather than fabricated ones.
-          </p>
-        </div>
-      </Card>
-    );
-  }
+  const signalType = SIGNAL_TYPE_BY_CATEGORY[category];
+
+  // What this category actually has behind it right now, read from the same
+  // endpoint the Signals page uses. Stated plainly per category instead of
+  // hiding the controls when a feed is still thin.
+  const coverageQuery = useQuery({
+    queryKey: ['lead-signal-categories'],
+    queryFn: () =>
+      fetchLeadSignalCategories() as Promise<{ categories: { value: string; count: number }[] }>,
+  });
+
+  const signalCount = signalType
+    ? coverageQuery.data?.categories.find((entry) => entry.value === signalType)?.count ?? 0
+    : 0;
+
+  const coverageText = !signalType
+    ? 'No signal feed is connected for this category yet. These thresholds are saved and will apply as soon as one is.'
+    : coverageQuery.isLoading
+      ? 'Checking ingested signals…'
+      : signalCount > 0
+        ? `${signalCount} ${signalCount === 1 ? 'signal' : 'signals'} ingested for this category.`
+        : 'No signals ingested for this category yet. These thresholds are saved and apply to new ones as they arrive.';
 
   return (
     <Card className="p-5">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
+        <div>
+          <p className="text-sm font-bold text-ink">{category}</p>
+          <p className="mt-0.5 text-xs text-ink-muted">{coverageText}</p>
+        </div>
+        {signalType && signalCount > 0 && (
+          <Link
+            to={`/signals`}
+            className="text-xs font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            View signals
+          </Link>
+        )}
+      </div>
       {/* Tender Value Range + Decision Window narrower left column; Score
           Thresholds (naturally taller, four sliders) fills the wider right
           column instead of every section stacking full-width — the value

@@ -8,6 +8,7 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   BrainCircuit,
+  Radar,
 } from 'lucide-react';
 import { cn } from '../../utils/formatters';
 
@@ -23,6 +24,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/tender-leads', label: 'Leads', icon: FileSearch },
+  { path: '/signals', label: 'Signals', icon: Radar },
   { path: '/human-review', label: 'Expert Review', icon: ClipboardCheck },
   { path: '/communication', label: 'Communication', icon: Mail },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
