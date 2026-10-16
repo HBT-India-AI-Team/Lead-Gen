@@ -136,7 +136,7 @@ export default function DecisionTrail({ tenderId, className }: { tenderId: strin
                   </span>
                   <div className="min-w-0 pt-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <p className="text-sm font-semibold text-ink">{EVENT_TITLE[event.eventType] ?? event.eventType}</p>
+                      <p className="text-sm font-semibold text-ink">{event.eventType === 'QUALIFIED' && event.actorType === 'MODEL' ? 'Scored by qualification model' : EVENT_TITLE[event.eventType] ?? event.eventType}</p>
                       {event.decision && <StatusBadge tone={DECISION_TONE[event.decision] ?? 'info'}>{event.decision}</StatusBadge>}
                     </div>
                     <p className="mt-0.5 text-xs text-ink-muted">

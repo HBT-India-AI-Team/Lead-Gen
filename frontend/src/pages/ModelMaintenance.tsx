@@ -692,8 +692,11 @@ function RegistryCard({ models, isAdmin, onChanged }: { models: MlModel[]; isAdm
                   <td className="tabular py-2 text-right text-ink">{formatMetric(model.metrics?.holdout?.rocAuc)}</td>
                   <td className="py-2 pl-4 pr-3 text-xs text-ink-soft">{formatDateTime(model.trained_at)}</td>
                   <td className="py-2 pr-3 text-xs text-ink-soft">
-                    {model.promoted_at ? formatDateTime(model.promoted_at) : '—'}
-                    {model.retired_at && ` → ${formatDateTime(model.retired_at)}`}
+                    {model.promoted_at
+                      ? `${formatDateTime(model.promoted_at)}${model.retired_at ? ` → ${formatDateTime(model.retired_at)}` : ' → now'}`
+                      : model.status === 'retired'
+                        ? 'Never live'
+                        : '—'}
                   </td>
                   <td className="py-2 text-right">
                     {model.status === 'active' && isAdmin && (confirmId === model.id ? (

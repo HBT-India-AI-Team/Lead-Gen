@@ -41,6 +41,23 @@ class TrainingDataError extends Error {
   }
 }
 
+/**
+ * Split seed derived from the labelled data itself (FNV-1a over the sorted
+ * lead ids and their labels). Re-running on unchanged data reproduces the
+ * exact same train/holdout split, so a candidate's gate verdict can't be
+ * changed by simply retrying until a lucky split comes up; it only changes
+ * when the labelled data does.
+ */
+function splitSeed(examples) {
+  const key = examples.map((example) => `${example.tenderId}:${example.label}`).sort().join('|');
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
 function classCounts(examples) {
   const positives = examples.filter((example) => example.label === 1).length;
   return { n: examples.length, positives, negatives: examples.length - positives };
@@ -171,7 +188,7 @@ async function executeRun(runId, segmentKey, requestedBy) {
   }
 
   const examples = await buildExamples(leads);
-  const { train, holdout } = stratifiedSplit(examples, (example) => example.label, HOLDOUT_FRACTION, runId);
+  const { train, holdout } = stratifiedSplit(examples, (example) => example.label, HOLDOUT_FRACTION, splitSeed(examples));
 
   const engine = getEngine(DEFAULT_MODEL_TYPE);
   const hyperparams = { ...DEFAULT_HYPERPARAMS };

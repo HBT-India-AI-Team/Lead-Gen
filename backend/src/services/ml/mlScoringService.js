@@ -2,7 +2,7 @@ import * as mlPredictionRepository from '../../repositories/mlPredictionReposito
 import { resolveLeadStatusFromScore } from '../scoring/qualificationScoringService.js';
 import { getEngine } from './engines/index.js';
 import { FEATURES, extractFeatures, outOfDistributionReasons } from './featureService.js';
-import { FEATURE_SCHEMA_VERSION } from './mlConfig.js';
+import { FEATURE_SCHEMA_VERSION, POOLED_SEGMENT } from './mlConfig.js';
 import { resolveModelForLead } from './modelRegistryService.js';
 
 // The qualification score for one lead: from the segment's active model
@@ -100,7 +100,7 @@ export async function scoreLead({ tender, probe42Profile, deterministicScore }) 
           modelVersion: model.version,
           segmentKey,
           resolvedVia,
-          label: `Model v${model.version} · ${segmentKey}`,
+          label: `Model v${model.version} · ${segmentKey === POOLED_SEGMENT ? 'all segments' : segmentKey}`,
           fallbackReason: null,
           contributions: topContributions(prediction.contributions),
         };

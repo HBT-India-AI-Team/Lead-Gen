@@ -73,7 +73,7 @@ export function summarize(probabilities, labels, threshold) {
   };
 }
 
-/** Small seeded PRNG (mulberry32) so a run's split is reproducible from its id. */
+/** Small seeded PRNG (mulberry32) so a split is reproducible from its seed. */
 export function seededRandom(seed) {
   let state = seed >>> 0;
   return () => {
