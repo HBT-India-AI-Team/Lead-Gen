@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   ArrowUpRight,
@@ -9,11 +9,15 @@ import {
   Gavel,
   Inbox,
   ReceiptText,
+  Loader2,
+  RefreshCw,
   TrendingUp,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import StatusBadge from '../components/ui/StatusBadge';
 import { fetchLeadSignalCategories, fetchLeadSignals } from '../services/leadsApi';
+import { fetchScrapeStatus, startScrape } from '../services/ingestionApi';
+import Button from '../components/ui/Button';
 import { formatInrCompact } from '../utils/tenderFormatters';
 
 // A buying signal is a dated, sourced event about a company — a tender won, a
@@ -223,6 +227,30 @@ export default function Signals() {
       ) as Promise<{ signals: Signal[] }>,
   });
 
+  const queryClient = useQueryClient();
+
+  // Discovery runs as a Cloud Run Job, so this polls while one is in flight
+  // rather than holding a request open for the hours a scrape can take.
+  const scrapeQuery = useQuery({
+    queryKey: ['scrape-status'],
+    queryFn: () =>
+      fetchScrapeStatus() as Promise<{
+        configured: boolean;
+        executions: { startedAt: string | null; running: boolean; succeeded: boolean; failed: boolean }[];
+      }>,
+    refetchInterval: (query) =>
+      query.state.data?.executions?.some((execution) => execution.running) ? 15000 : false,
+  });
+
+  const scrapeMutation = useMutation({
+    mutationFn: () => startScrape(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scrape-status'] }),
+  });
+
+  const latestRun = scrapeQuery.data?.executions?.[0];
+  const isRunning = Boolean(latestRun?.running);
+  const scrapeConfigured = scrapeQuery.data?.configured ?? false;
+
   const categories = categoriesQuery.data?.categories ?? [];
   const totalCount = categories.reduce((sum, category) => sum + category.count, 0);
   const signals = signalsQuery.data?.signals ?? [];
@@ -241,12 +269,40 @@ export default function Signals() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight text-ink">Signals</h1>
-        <p className="mt-1 max-w-[70ch] text-sm text-ink-soft">
-          Dated, sourced events that say a company may need financing now — contract awards, new
-          registrations and expansion activity, newest first.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Signals</h1>
+          <p className="mt-1 max-w-[70ch] text-sm text-ink-soft">
+            Dated, sourced events that say a company may need financing now — contract awards, new
+            registrations and expansion activity, newest first.
+          </p>
+        </div>
+
+        {scrapeConfigured && (
+          <div className="text-right">
+            <Button
+              type="button"
+              onClick={() => scrapeMutation.mutate()}
+              disabled={isRunning || scrapeMutation.isPending}
+            >
+              {isRunning || scrapeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isRunning ? 'Discovery running' : 'Run discovery'}
+            </Button>
+            <p className="mt-1.5 max-w-[32ch] text-xs text-ink-muted">
+              {scrapeMutation.isError
+                ? (scrapeMutation.error as Error).message
+                : isRunning
+                  ? 'Scraping tender portals now. New signals appear as they are processed.'
+                  : latestRun?.startedAt
+                    ? `Last run ${new Date(latestRun.startedAt).toLocaleString('en-IN')}`
+                    : 'Fetches new tender awards from the connected portals.'}
+            </p>
+          </div>
+        )}
       </header>
 
       {/* Category filter. A segmented row rather than a dropdown: there are few

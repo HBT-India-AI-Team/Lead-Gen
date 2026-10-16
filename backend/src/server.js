@@ -30,6 +30,7 @@ import tendersRoutes from './routes/tenders.js';
 import tenderProposalsRoutes from './routes/tenderProposals.js';
 import leadsRoutes from './routes/leads.js';
 import mlRoutes from './routes/ml.js';
+import ingestionRoutes from './routes/ingestion.js';
 import aiRoutes from './routes/ai.js';
 import settingsRoutes from './routes/settings.js';
 
@@ -75,6 +76,7 @@ app.use('/api/tenders', tendersRoutes);
 app.use('/api/tender-proposals', tenderProposalsRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api/ml', mlRoutes);
+app.use('/api/ingestion', ingestionRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/settings', settingsRoutes);
 
