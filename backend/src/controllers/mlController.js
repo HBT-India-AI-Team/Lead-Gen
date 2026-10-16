@@ -1,10 +1,9 @@
 import * as modelRegistryService from '../services/ml/modelRegistryService.js';
 import * as retrainingService from '../services/ml/retrainingService.js';
 
-// /api/ml — Model Maintenance Agent. Reads are open like /api/leads; every
-// action that changes which model scores leads (train, promote, retire)
-// requires an authenticated Admin (see routes/ml.js), and the admin's name
-// is what gets recorded as approver/requester.
+// /api/ml — Model Maintenance Agent. No login (see routes/ml.js): every
+// request acts as the fixed system account, whose name is recorded as the
+// requester/approver of training runs and promotions.
 
 function actorName(req) {
   const name = [req.user?.firstName, req.user?.lastName].filter(Boolean).join(' ').trim();
@@ -36,7 +35,7 @@ export async function listModels(req, res, next) {
   }
 }
 
-// POST /api/ml/models/:id/promote — admin approves a candidate. 409 unless
+// POST /api/ml/models/:id/promote — a reviewer approves a candidate. 409 unless
 // its training run passed the promotion gate and is still current.
 export async function promoteModel(req, res, next) {
   try {
