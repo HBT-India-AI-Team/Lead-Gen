@@ -63,6 +63,24 @@ export async function fetchLeadById(tenderId) {
   return parseJson(response);
 }
 
+/** POST /api/leads/:id/qualify — re-runs the rules score plus the Gemini advisory for one tender and returns the persisted lead. */
+export async function qualifyLead(tenderId) {
+  const response = await fetch(`${BACKEND_URL}/api/leads/${encodeURIComponent(tenderId)}/qualify`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+  return parseJson(response);
+}
+
+/** POST /api/leads/:id/proposal — Gemini drafts the product proposal and email. 409s unless the lead is QUALIFIED_GOOD and READY_FOR_PROPOSAL. */
+export async function generateLeadProposal(tenderId) {
+  const response = await fetch(`${BACKEND_URL}/api/leads/${encodeURIComponent(tenderId)}/proposal`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+  return parseJson(response);
+}
+
 /** GET /api/leads/:id/proposal — the real, persisted generated proposal for one tender. Throws (status 404) if none exists yet. */
 export async function fetchLeadProposal(tenderId) {
   const response = await fetch(`${BACKEND_URL}/api/leads/${encodeURIComponent(tenderId)}/proposal`, {

@@ -13,11 +13,9 @@ import {
   HeartPulse,
   Inbox,
   Loader2,
-  PauseCircle,
   RefreshCw,
   ShieldCheck,
   Workflow,
-  XCircle,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -25,6 +23,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import DecisionTrail from '../components/leads/DecisionTrail';
 import LeadRecommendations from '../components/leads/LeadRecommendations';
+import { fetchLeadById, qualifyLead, generateLeadProposal } from '../services/leadsApi';
 import { fetchTenderById, fetchCustomerCheck, fetchHealthCheck, fetchProposals, createProposal, approveProposal } from '../services/tendersApi';
 import { formatDate, tenderTitleFrom, tenderLocation, tenderStatus } from '../utils/tenderFormatters';
 
@@ -128,8 +127,28 @@ interface Proposal {
   proposal_summary: string | null;
   email_draft: string | null;
   status: string;
+  review_comment?: string | null;
+  reviewed_by?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// tender_proposals holds two kinds of row: legacy template proposals
+// ('Draft' -> 'Approved' via the shortcut below) and Gemini proposals, whose
+// status is the Expert Review decision (READY_FOR_REVIEW -> APPROVED /
+// CHANGES_REQUESTED / REJECTED / ON_HOLD). Gemini proposals are only ever
+// decided in Expert Review, so the decision lands in the decision trail.
+const isApprovedStatus = (status?: string) => status?.toUpperCase() === 'APPROVED';
+const isLegacyDraft = (status?: string) => status === 'Draft';
+
+function ExpertReviewLink({ tenderId, label }: { tenderId: string; label: string }) {
+  return (
+    <Link to={`/human-review?tenderId=${encodeURIComponent(tenderId)}`} className="no-underline">
+      <Button type="button" variant="secondary">
+        <ClipboardCheck className="h-4 w-4" aria-hidden="true" /> {label}
+      </Button>
+    </Link>
+  );
 }
 
 interface ProposalsListResponse {
@@ -516,7 +535,7 @@ function ProposalCard({ tender }: { tender: Tender }) {
                 </Button>
               )}
 
-              {latest && latest.status !== 'Approved' && (
+              {latest && isLegacyDraft(latest.status) && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -528,7 +547,11 @@ function ProposalCard({ tender }: { tender: Tender }) {
                 </Button>
               )}
 
-              {latest?.status === 'Approved' && <StatusBadge tone="success">Approved</StatusBadge>}
+              {latest && isApprovedStatus(latest.status) && <StatusBadge tone="success">Approved</StatusBadge>}
+
+              {latest && !isLegacyDraft(latest.status) && !isApprovedStatus(latest.status) && (
+                <ExpertReviewLink tenderId={tender.tender_id} label="Review in Expert Review" />
+              )}
             </div>
           </>
         )}
@@ -537,7 +560,16 @@ function ProposalCard({ tender }: { tender: Tender }) {
   );
 }
 
-const PROPOSAL_STATUS_TONE: Record<string, StatusTone> = { Draft: 'warning', Approved: 'success' };
+const PROPOSAL_STATUS_TONE: Record<string, StatusTone> = {
+  Draft: 'warning',
+  Approved: 'success',
+  READY_FOR_REVIEW: 'warning',
+  NEEDS_HUMAN_REVIEW: 'warning',
+  APPROVED: 'success',
+  CHANGES_REQUESTED: 'warning',
+  ON_HOLD: 'neutral',
+  REJECTED: 'danger',
+};
 
 function HumanReviewCard({ tender }: { tender: Tender }) {
   const queryClient = useQueryClient();
@@ -552,9 +584,8 @@ function HumanReviewCard({ tender }: { tender: Tender }) {
     queryFn: () => fetchProposals(tender.tender_id) as Promise<ProposalsListResponse>,
   });
 
-  // Only "Approve" has a real backend mutation (PUT /api/tender-proposals/:id/approve,
-  // already used by the Proposal card). Reject/Hold have no backing endpoint,
-  // so those buttons stay inert per this phase's explicit instruction.
+  // The shortcut Approve (PUT /api/tender-proposals/:id/approve) is only for
+  // legacy template drafts; Gemini proposals are decided in Expert Review.
   const approveMutation = useMutation({
     mutationFn: (id: number) => approveProposal(id) as Promise<ProposalResponse>,
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
@@ -562,7 +593,7 @@ function HumanReviewCard({ tender }: { tender: Tender }) {
 
   const proposals = listQuery.data?.proposals ?? [];
   const latest = proposals[0];
-  const isApproved = latest?.status === 'Approved';
+  const isApproved = isApprovedStatus(latest?.status);
 
   return (
     <Card className="p-5">
@@ -621,7 +652,9 @@ function HumanReviewCard({ tender }: { tender: Tender }) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Reviewer Notes</p>
               <p className="mt-2 rounded-xl border border-hairline bg-surface-muted p-4 text-sm text-ink-muted">
-                No review notes available.
+                {latest.review_comment
+                  ? `${latest.review_comment}${latest.reviewed_by ? ` — ${latest.reviewed_by}` : ''}`
+                  : 'No review notes available.'}
               </p>
             </div>
 
@@ -635,7 +668,7 @@ function HumanReviewCard({ tender }: { tender: Tender }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Decision</p>
               {isApproved ? (
                 <StatusBadge tone="success" className="mt-2">Approved</StatusBadge>
-              ) : (
+              ) : isLegacyDraft(latest.status) ? (
                 <div className="mt-2 flex flex-wrap gap-3">
                   <Button
                     type="button"
@@ -645,12 +678,13 @@ function HumanReviewCard({ tender }: { tender: Tender }) {
                     <CheckCircle2 className="h-4 w-4" />
                     {approveMutation.isPending ? 'Approving…' : 'Approve'}
                   </Button>
-                  <Button type="button" variant="secondary">
-                    <XCircle className="h-4 w-4" /> Reject
-                  </Button>
-                  <Button type="button" variant="secondary">
-                    <PauseCircle className="h-4 w-4" /> Hold
-                  </Button>
+                </div>
+              ) : (
+                <div className="mt-2 grid gap-2">
+                  <p className="text-sm text-ink-soft">Approve, request changes, reject or hold this proposal in Expert Review.</p>
+                  <div>
+                    <ExpertReviewLink tenderId={tender.tender_id} label="Open in Expert Review" />
+                  </div>
                 </div>
               )}
             </div>
@@ -1019,18 +1053,75 @@ function LeadDetails() {
 
       <PipelineCard tender={tender} />
 
-      <Card className="p-5">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Quick Actions</h3>
-        <p className="mt-1 text-xs text-ink-muted">This step isn&apos;t wired up yet — button is a placeholder for the upcoming workflow phase.</p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Button type="button" variant="secondary">
-            <FileText className="h-4 w-4" /> Generate Proposal
-          </Button>
-        </div>
-      </Card>
+      <QuickActions tenderId={tender.tender_id} />
 
       <DecisionTrail tenderId={tender.tender_id} />
     </div>
+  );
+}
+
+type LeadPipelineRow = { lead_status?: string | null; pipeline_status?: string | null; qualification_score?: number | null };
+
+// Re-qualifying resets the pipeline, so it's blocked once a proposal is in
+// review; generating needs a GOOD lead that has no proposal yet (the same
+// rule proposalPipelineService enforces server-side).
+function QuickActions({ tenderId }: { tenderId: string }) {
+  const queryClient = useQueryClient();
+  const leadQuery = useQuery({
+    queryKey: ['lead', tenderId],
+    queryFn: () => fetchLeadById(tenderId) as Promise<{ lead: LeadPipelineRow }>,
+  });
+
+  const refreshLead = () =>
+    Promise.all(
+      [['lead', tenderId], ['tender', tenderId], ['lead-decision-trail', tenderId], ['lead-recommendations', tenderId], ['tender-proposals', tenderId]].map((queryKey) =>
+        queryClient.invalidateQueries({ queryKey })
+      )
+    );
+
+  const qualifyMutation = useMutation({ mutationFn: () => qualifyLead(tenderId), onSuccess: refreshLead });
+  const proposalMutation = useMutation({ mutationFn: () => generateLeadProposal(tenderId), onSuccess: refreshLead });
+
+  const lead = leadQuery.data?.lead;
+  const inReview = lead?.pipeline_status === 'AWAITING_PROPOSAL_REVIEW';
+  const busy = qualifyMutation.isPending || proposalMutation.isPending || lead?.pipeline_status === 'QUALIFYING';
+  const canGenerate = lead?.lead_status === 'QUALIFIED_GOOD' && lead?.pipeline_status === 'READY_FOR_PROPOSAL';
+  const error = (qualifyMutation.error ?? proposalMutation.error) as Error | null;
+
+  let hint = 'Re-qualify scores the lead with the 10 rules and asks Gemini for an advisory note.';
+  if (inReview) hint = 'A proposal for this lead is in Expert Review, so re-qualifying is disabled.';
+  else if (lead && !canGenerate) hint = 'Gemini proposals are only drafted for leads scoring 80 or more.';
+
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Quick Actions</h3>
+      <p className="mt-1 text-xs text-ink-muted">{hint}</p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Button type="button" variant="secondary" disabled={!lead || busy || inReview} onClick={() => qualifyMutation.mutate()}>
+          {qualifyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+          {qualifyMutation.isPending ? 'Qualifying…' : 'Re-qualify with Gemini'}
+        </Button>
+        {inReview ? (
+          <ExpertReviewLink tenderId={tenderId} label="Open in Expert Review" />
+        ) : (
+          <Button type="button" disabled={!canGenerate || busy} onClick={() => proposalMutation.mutate()}>
+            {proposalMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <FileText className="h-4 w-4" aria-hidden="true" />}
+            {proposalMutation.isPending ? 'Drafting…' : 'Generate AI proposal'}
+          </Button>
+        )}
+      </div>
+      {qualifyMutation.isSuccess && !busy && (
+        <p className="mt-3 text-xs text-ink-soft" role="status">
+          Re-qualified: {lead?.qualification_score ?? '—'}/100 ({lead?.lead_status ?? 'unknown'}).
+        </p>
+      )}
+      {proposalMutation.isSuccess && !busy && (
+        <p className="mt-3 text-xs text-ink-soft" role="status">Proposal drafted and sent to Expert Review.</p>
+      )}
+      {error && !busy && (
+        <p className="mt-3 text-xs text-danger" role="alert">{error.message}</p>
+      )}
+    </Card>
   );
 }
 
