@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,24 +9,20 @@ import {
   CheckCircle2,
   Inbox,
   Loader2,
-  LogOut,
   Play,
-  ShieldCheck,
   XCircle,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
-import { fetchCurrentUser, getToken, login, logout } from '../services/authApi';
 import { fetchMlModels, fetchMlOverview, fetchTrainingRuns, promoteModel, retireModel, startTrainingRun } from '../services/mlApi';
 
 // Model Maintenance Agent — registry, retraining and the human approval
 // step. The agent trains candidates and compares them against whatever
 // scores leads today (the active model, or the rules engine); nothing goes
-// live until an admin approves it here. Every shape below mirrors
+// live until a person approves it here. Every shape below mirrors
 // backend/src/services/ml/retrainingService.js / modelRegistryService.js.
 
 interface MetricSummary {
@@ -129,11 +125,6 @@ interface Overview {
   crmFeed: { connected: boolean; note: string };
 }
 
-interface CurrentUser {
-  user: { first_name: string | null; last_name: string | null; email: string };
-  role: { role_name: string } | null;
-}
-
 const RUN_STATUS: Record<string, { label: string; tone: StatusTone }> = {
   running: { label: 'Running', tone: 'info' },
   failed: { label: 'Could not train', tone: 'neutral' },
@@ -179,73 +170,6 @@ function formatDelta(value: number | null | undefined) {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong.';
-}
-
-// ---------------------------------------------------------------------------
-// Admin session — train / approve / retire all require an Admin JWT.
-
-function AdminSession({ session, onChanged }: { session: CurrentUser | null | undefined; onChanged: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const loginMutation = useMutation({
-    mutationFn: () => login(email, password),
-    onSuccess: () => {
-      setOpen(false);
-      setPassword('');
-      onChanged();
-    },
-  });
-
-  if (session) {
-    const name = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ') || session.user.email;
-    const isAdmin = session.role?.role_name === 'Admin';
-    return (
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="inline-flex items-center gap-1.5 text-ink-soft">
-          <ShieldCheck className={`h-4 w-4 ${isAdmin ? 'text-success' : 'text-ink-muted'}`} strokeWidth={2} aria-hidden="true" />
-          {name} · {session.role?.role_name ?? 'No role'}
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={async () => {
-            await logout();
-            onChanged();
-          }}
-        >
-          <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> Sign out
-        </Button>
-      </div>
-    );
-  }
-
-  if (!open) {
-    return (
-      <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-        <ShieldCheck className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> Admin sign-in
-      </Button>
-    );
-  }
-
-  return (
-    <form
-      className="flex flex-wrap items-end gap-3"
-      onSubmit={(event: FormEvent) => {
-        event.preventDefault();
-        loginMutation.mutate();
-      }}
-    >
-      <Input id="ml-admin-email" label="Email" type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} />
-      <Input id="ml-admin-password" label="Password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
-      <Button type="submit" disabled={loginMutation.isPending}>{loginMutation.isPending ? 'Signing in…' : 'Sign in'}</Button>
-      <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-      {loginMutation.isError && (
-        <p className="w-full text-xs font-semibold text-danger" role="alert">{errorMessage(loginMutation.error)}</p>
-      )}
-    </form>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -357,7 +281,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function RunDetail({ run, models, isAdmin, onChanged }: { run: TrainingRun; models: MlModel[]; isAdmin: boolean; onChanged: () => void }) {
+function RunDetail({ run, models, onChanged }: { run: TrainingRun; models: MlModel[]; onChanged: () => void }) {
   const [note, setNote] = useState('');
   const [confirmReject, setConfirmReject] = useState(false);
   const comparison = run.comparison;
@@ -547,7 +471,6 @@ function RunDetail({ run, models, isAdmin, onChanged }: { run: TrainingRun; mode
               onChange={(event) => setNote(event.target.value)}
             />
           </div>
-          {!isAdmin && <p className="text-xs text-ink-muted">Sign in as an admin to approve or reject.</p>}
           {actionError && <p className="text-xs font-semibold text-danger" role="alert">{errorMessage(actionError)}</p>}
           {confirmReject ? (
             <div className="flex flex-wrap items-center gap-3">
@@ -559,11 +482,11 @@ function RunDetail({ run, models, isAdmin, onChanged }: { run: TrainingRun; mode
             </div>
           ) : (
             <div className="flex flex-wrap gap-3">
-              <Button type="button" disabled={!isAdmin || promoteMutation.isPending} onClick={() => promoteMutation.mutate()}>
+              <Button type="button" disabled={promoteMutation.isPending} onClick={() => promoteMutation.mutate()}>
                 <CheckCircle2 className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                 {promoteMutation.isPending ? 'Approving…' : 'Approve & make live'}
               </Button>
-              <Button type="button" variant="danger" disabled={!isAdmin} onClick={() => setConfirmReject(true)}>
+              <Button type="button" variant="danger" onClick={() => setConfirmReject(true)}>
                 <XCircle className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> Reject
               </Button>
             </div>
@@ -582,14 +505,12 @@ function RunsPanel({
   selectedRunId,
   onSelect,
   segmentOptions,
-  isAdmin,
   onTrained,
 }: {
   runs: TrainingRun[];
   selectedRunId: number | null;
   onSelect: (id: number) => void;
   segmentOptions: { value: string; label: string }[];
-  isAdmin: boolean;
   onTrained: (run: TrainingRun) => void;
 }) {
   const [segmentKey, setSegmentKey] = useState('__pooled__');
@@ -608,7 +529,7 @@ function RunsPanel({
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </Select>
-          <Button type="button" disabled={!isAdmin || trainMutation.isPending} onClick={() => trainMutation.mutate()}>
+          <Button type="button" disabled={trainMutation.isPending} onClick={() => trainMutation.mutate()}>
             {trainMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} aria-hidden="true" />
             ) : (
@@ -617,7 +538,6 @@ function RunsPanel({
             {trainMutation.isPending ? 'Training…' : 'Run retraining'}
           </Button>
         </div>
-        {!isAdmin && <p className="text-[11px] text-ink-muted">Admin sign-in required to start a run.</p>}
         {trainMutation.isError && <p className="text-xs font-semibold text-danger" role="alert">{errorMessage(trainMutation.error)}</p>}
       </div>
 
@@ -654,7 +574,7 @@ function RunsPanel({
   );
 }
 
-function RegistryCard({ models, isAdmin, onChanged }: { models: MlModel[]; isAdmin: boolean; onChanged: () => void }) {
+function RegistryCard({ models, onChanged }: { models: MlModel[]; onChanged: () => void }) {
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const retireMutation = useMutation({
     mutationFn: (id: number) => retireModel(id, 'Retired from the model registry.'),
@@ -699,7 +619,7 @@ function RegistryCard({ models, isAdmin, onChanged }: { models: MlModel[]; isAdm
                         : '—'}
                   </td>
                   <td className="py-2 text-right">
-                    {model.status === 'active' && isAdmin && (confirmId === model.id ? (
+                    {model.status === 'active' && (confirmId === model.id ? (
                       <span className="inline-flex gap-2">
                         <Button type="button" variant="ghost" onClick={() => setConfirmId(null)}>Cancel</Button>
                         <Button type="button" variant="danger" disabled={retireMutation.isPending} onClick={() => retireMutation.mutate(model.id)}>Confirm retire</Button>
@@ -722,26 +642,16 @@ function RegistryCard({ models, isAdmin, onChanged }: { models: MlModel[]; isAdm
 function ModelMaintenance() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [hasToken, setHasToken] = useState(Boolean(getToken()));
 
   const overviewQuery = useQuery({ queryKey: ['ml-overview'], queryFn: () => fetchMlOverview() as Promise<Overview> });
   const runsQuery = useQuery({ queryKey: ['ml-training-runs'], queryFn: () => fetchTrainingRuns({ limit: 50 }) as Promise<{ runs: TrainingRun[] }> });
   const modelsQuery = useQuery({ queryKey: ['ml-models'], queryFn: () => fetchMlModels() as Promise<{ models: MlModel[] }> });
-  const sessionQuery = useQuery({
-    queryKey: ['ml-admin-session', hasToken],
-    queryFn: () => fetchCurrentUser() as Promise<CurrentUser>,
-    enabled: hasToken,
-    retry: false,
-  });
-
   const refreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ['ml-overview'] });
     queryClient.invalidateQueries({ queryKey: ['ml-training-runs'] });
     queryClient.invalidateQueries({ queryKey: ['ml-models'] });
   };
 
-  const session = hasToken && sessionQuery.isSuccess ? sessionQuery.data : null;
-  const isAdmin = session?.role?.role_name === 'Admin';
   const runs = runsQuery.data?.runs ?? [];
   const models = modelsQuery.data?.models ?? [];
   const requestedRunId = Number(searchParams.get('run')) || null;
@@ -763,16 +673,9 @@ function ModelMaintenance() {
             <BrainCircuit className="h-6 w-6 text-primary" strokeWidth={2} aria-hidden="true" /> Model Maintenance
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-            The agent retrains the qualification model on real outcomes and proposes it here. Nothing goes live until an admin approves it, and the rules engine stays as the fallback.
+            The agent retrains the qualification model on real outcomes and proposes it here. Nothing goes live until a person approves it below, and the rules engine stays as the fallback.
           </p>
         </div>
-        <AdminSession
-          session={session}
-          onChanged={() => {
-            setHasToken(Boolean(getToken()));
-            queryClient.invalidateQueries({ queryKey: ['ml-admin-session'] });
-          }}
-        />
       </div>
 
       {loading && (
@@ -803,14 +706,13 @@ function ModelMaintenance() {
               selectedRunId={selectedRun?.id ?? null}
               onSelect={(id) => setSearchParams({ run: String(id) })}
               segmentOptions={segmentOptions}
-              isAdmin={isAdmin}
               onTrained={(run) => {
                 refreshAll();
                 setSearchParams({ run: String(run.id) });
               }}
             />
             {selectedRun ? (
-              <RunDetail key={selectedRun.id} run={selectedRun} models={models} isAdmin={isAdmin} onChanged={refreshAll} />
+              <RunDetail key={selectedRun.id} run={selectedRun} models={models} onChanged={refreshAll} />
             ) : (
               <Card className="grid justify-items-center gap-2 p-10 text-center text-sm text-ink-muted">
                 Run retraining to train a first candidate. It will be compared against the rules engine on held-out leads.
@@ -818,7 +720,7 @@ function ModelMaintenance() {
             )}
           </div>
 
-          <RegistryCard models={models} isAdmin={isAdmin} onChanged={refreshAll} />
+          <RegistryCard models={models} onChanged={refreshAll} />
         </>
       )}
     </div>

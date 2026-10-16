@@ -7,13 +7,10 @@ import {
   HiOutlinePlay,
   HiOutlinePlus,
 } from 'react-icons/hi';
-import { FiLock } from 'react-icons/fi';
 import {
   createSource,
   deleteSource,
   fetchSources,
-  getToken,
-  login,
   runSource,
   updateSource,
   updateSourceHealth,
@@ -57,55 +54,6 @@ const EMPTY_FORM = {
 
 const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100';
 const labelClass = 'grid gap-1.5 text-xs font-semibold uppercase text-slate-500';
-
-function LoginGate({ onSuccess }) {
-  const [email, setEmail] = useState('admin@leadgen.local');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await login(email, password);
-      onSuccess();
-    } catch (err) {
-      setError(err.message || 'Login failed.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="grid min-h-[60vh] place-items-center">
-      <Card className="w-full max-w-sm p-8">
-        <div className="grid place-items-center gap-2 text-center">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-700 text-white shadow-lg shadow-blue-900/20">
-            <FiLock className="h-5 w-5" />
-          </div>
-          <h2 className="text-lg font-bold text-slate-950">Source Registry Access</h2>
-          <p className="text-sm text-slate-500">Sign in with an Admin or Relationship Manager account to manage trusted sources.</p>
-        </div>
-        <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
-          <label className={labelClass}>
-            Email
-            <input className={inputClass} type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          </label>
-          <label className={labelClass}>
-            Password
-            <input className={inputClass} type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-          </label>
-          {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full justify-center">
-            {loading ? 'Signing in…' : 'Sign In'}
-          </Button>
-        </form>
-      </Card>
-    </div>
-  );
-}
 
 function SourceFormModal({ open, initialValue, onClose, onSubmit, submitting, serverError }) {
   const [form, setForm] = useState(initialValue || EMPTY_FORM);
@@ -242,7 +190,6 @@ function DeleteConfirmModal({ open, source, onClose, onConfirm, submitting }) {
 
 function SourceRegistry() {
   const queryClient = useQueryClient();
-  const [authed, setAuthed] = useState(Boolean(getToken()));
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [enabledFilter, setEnabledFilter] = useState('All');
@@ -260,15 +207,6 @@ function SourceRegistry() {
     setAlert({ type, title, message });
   }
 
-  function handleAuthError(error) {
-    if (error?.status === 401) {
-      setAuthed(false);
-      showToast('error', 'Session Expired', 'Please sign in again.');
-      return true;
-    }
-    return false;
-  }
-
   const sourcesQuery = useQuery({
     queryKey: ['sources', debouncedSearch, category, enabledFilter, sortOption.sortBy, sortOption.order, page],
     queryFn: () => fetchSources({
@@ -280,15 +218,9 @@ function SourceRegistry() {
       page,
       limit,
     }),
-    enabled: authed,
     placeholderData: keepPreviousData,
-    retry: (failureCount, error) => error?.status !== 401 && failureCount < 1,
+    retry: 1,
   });
-
-  useMemo(() => {
-    if (sourcesQuery.error) handleAuthError(sourcesQuery.error);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourcesQuery.error]);
 
   const sources = sourcesQuery.data?.sources || [];
   const pagination = sourcesQuery.data?.pagination || { page: 1, total_pages: 1, total: 0 };
@@ -304,7 +236,7 @@ function SourceRegistry() {
         showToast('success', successTitle, successMessage);
       },
       onError: (error) => {
-        if (!handleAuthError(error)) showToast('error', 'Action Failed', error.message);
+        showToast('error', 'Action Failed', error.message);
       },
     };
   }
@@ -316,8 +248,8 @@ function SourceRegistry() {
       setFormModal({ open: false, source: null });
       showToast('success', 'Source Added', 'The new source is now part of the registry.');
     },
-    onError: (error) => {
-      if (!handleAuthError(error)) createMutation.reset();
+    onError: () => {
+      createMutation.reset();
     },
   });
 
@@ -327,9 +259,6 @@ function SourceRegistry() {
       invalidate();
       setFormModal({ open: false, source: null });
       showToast('success', 'Source Updated', 'Changes have been saved.');
-    },
-    onError: (error) => {
-      handleAuthError(error);
     },
   });
 
@@ -341,7 +270,7 @@ function SourceRegistry() {
       showToast('success', 'Source Deleted', 'The source has been removed from the registry.');
     },
     onError: (error) => {
-      if (!handleAuthError(error)) showToast('error', 'Delete Failed', error.message);
+      showToast('error', 'Delete Failed', error.message);
     },
   });
 
@@ -349,10 +278,6 @@ function SourceRegistry() {
   const healthMutation = useMutation({ mutationFn: updateSourceHealth, ...withMutationCallbacks('Health Updated', 'Health status updated.') });
   const runMutation = useMutation({ mutationFn: runSource, ...withMutationCallbacks('Run Recorded', 'Last run timestamp updated.') });
   const priorityMutation = useMutation({ mutationFn: updateSourcePriority, ...withMutationCallbacks('Priority Updated', 'Priority updated.') });
-
-  if (!authed) {
-    return <LoginGate onSuccess={() => setAuthed(true)} />;
-  }
 
   return (
     <div className="grid gap-6">

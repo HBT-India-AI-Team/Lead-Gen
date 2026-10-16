@@ -7,13 +7,11 @@ import {
   CheckCircle2,
   Cpu,
   Database,
-  KeyRound,
   ListChecks,
   Loader2,
   Pencil,
   RefreshCw,
   Server,
-  ShieldCheck,
   SlidersHorizontal,
   User,
   Wifi,
@@ -27,7 +25,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import LeadCategorySettings from '../components/settings/LeadCategorySettings';
 import AiUsagePanel from '../components/settings/AiUsagePanel';
 import type { StatusTone } from '../components/ui/StatusBadge';
-import { updateProfile as updateProfileRequest, changePassword as changePasswordRequest } from '../services/userApi';
+import { updateProfile as updateProfileRequest } from '../services/userApi';
 import { fetchTenders } from '../services/tendersApi';
 import { fetchAiStatus } from '../services/aiApi';
 import { BACKEND_URL } from '../constants/dashboard';
@@ -367,52 +365,11 @@ function Settings() {
     setLeadDefaultsDraft(leadDefaults);
   }
 
-  // ==================================================================
-  // 7. Security — Change Password (PUT /api/users/change-password, real) + Sign Out
-  // ==================================================================
-
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [passwordErrors, setPasswordErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
-  function resetPasswordForm() {
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setPasswordErrors({});
-  }
-
-  function validatePasswordForm() {
-    const errors: typeof passwordErrors = {};
-    if (!passwordForm.currentPassword) errors.currentPassword = 'Current password is required.';
-    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(passwordForm.newPassword)) {
-      errors.newPassword = 'New password must be at least 8 characters and include a letter and a number.';
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
-    }
-    setPasswordErrors(errors);
-    return Object.keys(errors).length === 0;
-  }
-
-  async function submitPasswordChange() {
-    if (!validatePasswordForm()) return;
-    setIsSavingPassword(true);
-    try {
-      await changePasswordRequest({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword });
-      pushToast('success', 'Password changed successfully.');
-      resetPasswordForm();
-      setIsChangingPassword(false);
-    } catch (error) {
-      pushToast('error', error instanceof Error ? error.message : 'Unable to save settings');
-    } finally {
-      setIsSavingPassword(false);
-    }
-  }
-
   return (
     <div className="grid gap-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-ink">Settings</h2>
-        <p className="mt-1 text-sm text-ink-soft">Configure your profile, preferences, integrations, and account security.</p>
+        <p className="mt-1 text-sm text-ink-soft">Configure your profile, preferences and integrations.</p>
       </div>
 
       {/* Master tab bar — General (account/system settings) plus one tab per
@@ -734,65 +691,7 @@ function Settings() {
         <AiUsagePanel />
       </Card>
 
-      {/* 7. Security */}
-      <Card className="p-5">
-        <SectionHeader icon={ShieldCheck} title="Security" />
-        <div className="mt-3">
-          <StatusRow label="Current Role" tone="neutral" text={roleName} />
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button type="button" variant="secondary" onClick={() => setIsChangingPassword((value) => !value)}>
-            <KeyRound className="h-4 w-4" strokeWidth={2} /> Change Password
-          </Button>
-        </div>
-
-        {isChangingPassword && (
-          <div className="mt-4 grid gap-4 border-t border-hairline pt-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Input
-                type="password"
-                label="Current Password"
-                value={passwordForm.currentPassword}
-                onChange={(event) => setPasswordForm((form) => ({ ...form, currentPassword: event.target.value }))}
-                error={passwordErrors.currentPassword}
-              />
-              <Input
-                type="password"
-                label="New Password"
-                value={passwordForm.newPassword}
-                onChange={(event) => setPasswordForm((form) => ({ ...form, newPassword: event.target.value }))}
-                error={passwordErrors.newPassword}
-              />
-              <Input
-                type="password"
-                label="Confirm New Password"
-                value={passwordForm.confirmPassword}
-                onChange={(event) => setPasswordForm((form) => ({ ...form, confirmPassword: event.target.value }))}
-                error={passwordErrors.confirmPassword}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Button type="button" variant="primary" onClick={submitPasswordChange} disabled={isSavingPassword}>
-                {isSavingPassword ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setIsChangingPassword(false);
-                  resetPasswordForm();
-                }}
-                disabled={isSavingPassword}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* 8. System Information */}
+      {/* 7. System Information */}
       <Card className="p-5">
         <SectionHeader icon={Server} title="System Information" />
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

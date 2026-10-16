@@ -1,8 +1,7 @@
 import { BACKEND_URL } from '../constants/dashboard';
-import { getToken } from './authApi';
 
 // Client for /api/ml/* (backend/src/routes/ml.js) — the Model Maintenance
-// Agent. Reads are open; train / promote / retire send the admin's JWT.
+// Agent. No login, like the rest of the app.
 
 async function parseJson(response) {
   const data = await response.json().catch(() => ({}));
@@ -28,14 +27,12 @@ async function getJson(path) {
   return parseJson(response);
 }
 
-async function postAsAdmin(path, body) {
-  const token = getToken();
+async function post(path, body) {
   const response = await fetch(`${BACKEND_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body ?? {}),
   });
@@ -57,17 +54,17 @@ export function fetchTrainingRuns(params) {
   return getJson(`/api/ml/training-runs${buildQuery(params)}`);
 }
 
-/** POST /api/ml/training-runs — manual retraining for one segment (admin). Resolves with the finished run, including failed ones. */
+/** POST /api/ml/training-runs — manual retraining for one segment. Resolves with the finished run, including failed ones. */
 export function startTrainingRun(segmentKey) {
-  return postAsAdmin('/api/ml/training-runs', { segmentKey });
+  return post('/api/ml/training-runs', { segmentKey });
 }
 
-/** POST /api/ml/models/:id/promote — admin approves a candidate that passed the promotion gate. */
+/** POST /api/ml/models/:id/promote — a reviewer approves a candidate that passed the promotion gate. */
 export function promoteModel(modelId, note) {
-  return postAsAdmin(`/api/ml/models/${encodeURIComponent(modelId)}/promote`, { note });
+  return post(`/api/ml/models/${encodeURIComponent(modelId)}/promote`, { note });
 }
 
-/** POST /api/ml/models/:id/retire — rejects a candidate, or takes the active model out of service (admin). */
+/** POST /api/ml/models/:id/retire — rejects a candidate, or takes the active model out of service. */
 export function retireModel(modelId, note) {
-  return postAsAdmin(`/api/ml/models/${encodeURIComponent(modelId)}/retire`, { note });
+  return post(`/api/ml/models/${encodeURIComponent(modelId)}/retire`, { note });
 }
