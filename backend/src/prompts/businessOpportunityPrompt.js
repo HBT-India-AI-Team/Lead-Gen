@@ -2,7 +2,7 @@
 // file was not in the originally requested src/prompts file list (only
 // executiveSummary/riskAnalysis/talkingPoints/engagementStrategy/
 // nextBestAction were named), but "Business Opportunity Summary" is
-// listed as one of the six things Ollama must generate and
+// listed as one of the six things the LLM must generate and
 // `businessOpportunity` is a required key in the documented Expected
 // Output — this file closes that gap using the same one-file-per-field
 // pattern as the other five.

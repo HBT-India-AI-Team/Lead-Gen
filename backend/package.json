@@ -1,7 +1,7 @@
 {
-  "name": "sbi-leadgen-backend",
+  "name": "fintech-lead-intelligence-backend",
   "version": "1.0.0",
-  "description": "Clean Express.js and MySQL backend for SBI LeadGen Intelligence Platform",
+  "description": "Express.js and MySQL backend for the Fintech Lead Intelligence platform",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -26,13 +26,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Harinirenu10/sbi-leadgen-intelligence.git"
+    "url": "git+https://github.com/HBT-India-AI-Team/Lead-Gen.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Harinirenu10/sbi-leadgen-intelligence/issues"
+    "url": "https://github.com/HBT-India-AI-Team/Lead-Gen/issues"
   },
-  "homepage": "https://github.com/Harinirenu10/sbi-leadgen-intelligence#readme"
+  "homepage": "https://github.com/HBT-India-AI-Team/Lead-Gen#readme"
 }

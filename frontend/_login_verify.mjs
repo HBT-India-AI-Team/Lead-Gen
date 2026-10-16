@@ -13,11 +13,11 @@ await p.goto('http://localhost:3000/login', { waitUntil: 'networkidle' });
 const pageText = await p.locator('body').innerText();
 console.log('Contains "Default Seeded":', pageText.includes('Default Seeded'));
 console.log('Contains "Admin@123":', pageText.includes('Admin@123'));
-console.log('Contains "admin@sbi.com":', pageText.includes('admin@sbi.com'));
+console.log('Contains "admin@leadgen.local":', pageText.includes('admin@leadgen.local'));
 await p.screenshot({ path: path.join(outDir, 'login-page.png'), fullPage: true });
 
 // 2. Confirm the login form still works end-to-end.
-await p.fill('input[type="email"]', 'admin@sbi.com');
+await p.fill('input[type="email"]', 'admin@leadgen.local');
 await p.fill('input[type="password"]', 'Admin@123');
 await p.click('button[type="submit"]');
 await p.waitForURL('**/dashboard', { timeout: 10000 });

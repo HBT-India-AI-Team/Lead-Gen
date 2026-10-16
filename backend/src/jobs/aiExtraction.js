@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createLlmClient } from '../services/llm/llmClient.js';
 import { ensureTenderExtractionsSchema } from '../db/migrations/addTenderExtractionsTable.js';
 import { findDocumentsPendingExtraction, saveExtraction } from '../repositories/tenderExtractionRepository.js';
 import { extractTenderFields } from '../services/intelligence/aiExtractionService.js';
@@ -13,12 +14,8 @@ const LOG_PREFIX = '[AI Extraction]';
 // documentProcessor.js pipeline — it only reads scraped_documents.
 
 export async function runAiExtraction() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY missing from .env');
-  }
-  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const llmClient = createLlmClient();
+  const { model } = llmClient;
 
   await ensureTenderExtractionsSchema();
 
@@ -41,7 +38,7 @@ export async function runAiExtraction() {
         throw new Error('cleaned_text is empty.');
       }
 
-      const { fields, payload } = await extractTenderFields(document.cleaned_text, { apiKey, model, baseUrl });
+      const { fields, payload, usage: callUsage } = await extractTenderFields(document.cleaned_text, { llmClient });
 
       await saveExtraction({
         scrapedDocumentId: document.id,
@@ -50,11 +47,9 @@ export async function runAiExtraction() {
         rawLlmResponse: payload
       });
 
-      if (payload.usage) {
-        usage.prompt += payload.usage.prompt_tokens || 0;
-        usage.completion += payload.usage.completion_tokens || 0;
-        usage.total += payload.usage.total_tokens || 0;
-      }
+      usage.prompt += callUsage.prompt;
+      usage.completion += callUsage.completion;
+      usage.total += callUsage.total;
 
       extracted++;
       console.log(`${LOG_PREFIX} Document ${document.id}: extracted "${fields.tenderTitle ?? 'untitled'}".`);

@@ -1,5 +1,5 @@
 import { leadAnalysisService } from '../services/leadAnalysisService.js';
-import { OllamaAnalysisService } from '../services/ollama/ollamaAnalysisService.js';
+import { AiAnalysisService } from '../services/llm/aiAnalysisService.js';
 
 // POST /api/lead-analysis
 // Runs the request body (a tender record) through LeadAnalysisService and
@@ -17,20 +17,20 @@ export async function generate(req, res, next) {
 }
 
 // POST /api/lead-analysis/ai
-// Tender record -> LeadAnalysisService (deterministic) -> OllamaAnalysisService
+// Tender record -> LeadAnalysisService (deterministic) -> AiAnalysisService
 // (narrative explanation only) -> { leadAnalysis, aiAnalysis }.
 //
-// OllamaAnalysisService is constructed here rather than as a shared
-// module-level singleton: its constructor reads OLLAMA_BASE_URL/
-// OLLAMA_DEFAULT_MODEL from .env and throws if either is missing, and
+// AiAnalysisService is constructed here rather than as a shared
+// module-level singleton: its LLM client constructor throws if the configured
+// provider (GEMINI_API_KEY / OLLAMA_BASE_URL) is missing from .env, and
 // that check should only ever fail this one request — not crash server
-// startup for every other endpoint if Ollama isn't configured.
+// startup for every other endpoint if the AI provider isn't configured.
 export async function generateWithAi(req, res, next) {
   try {
     const leadAnalysis = leadAnalysisService.generateLeadAnalysis(req.body);
 
-    const ollamaAnalysisService = new OllamaAnalysisService();
-    const aiAnalysis = await ollamaAnalysisService.generateAnalysis(leadAnalysis);
+    const aiAnalysisService = new AiAnalysisService();
+    const aiAnalysis = await aiAnalysisService.generateAnalysis(leadAnalysis);
 
     return res.status(200).json({ leadAnalysis, aiAnalysis });
   } catch (error) {

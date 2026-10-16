@@ -6,26 +6,18 @@ import {
   Settings,
   Search,
   Building2,
-  MapPin,
-  Tag,
   Award,
   TrendingUp,
   ShieldCheck,
   CheckCircle2,
-  Clock,
-  ArrowRight,
-  ChevronRight,
   Sparkles,
-  DollarSign,
   FileText,
   Mail,
   UserCheck,
   AlertTriangle,
   Check,
-  ExternalLink,
   Copy,
   Send,
-  Download,
   RefreshCw,
   ArrowLeft,
 } from 'lucide-react';
@@ -54,7 +46,7 @@ interface LeadData {
   healthCheckScore: number;
   healthCheckStatus: 'HOT' | 'WARM' | 'LOW PRIORITY';
   currentStage: string;
-  sbiCustomerStatus: boolean;
+  existingCustomerStatus: boolean;
   cifNumber?: string;
   issuingAuthority: string;
   contractDate: string;
@@ -75,7 +67,7 @@ const MOCK_LEAD: LeadData = {
   healthCheckScore: 88,
   healthCheckStatus: 'HOT',
   currentStage: 'Financial Check',
-  sbiCustomerStatus: true,
+  existingCustomerStatus: true,
   cifNumber: '884029104',
   issuingAuthority: 'NTPC Limited (Corporate Office, New Delhi)',
   contractDate: '2026-07-15',
@@ -108,12 +100,12 @@ export default function B2BLeadWorkspaceDashboard() {
       <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white">
         {/* Brand Header */}
         <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#005BAC] text-sm font-bold text-white shadow-xs">
-            SBI
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1A73E8] text-sm font-bold text-white shadow-xs">
+            FL
           </div>
           <div>
-            <h1 className="text-sm font-bold text-slate-900 leading-tight">LeadGen AI</h1>
-            <p className="text-[11px] font-medium text-slate-500">SBI Relationship Banking</p>
+            <h1 className="text-sm font-bold text-slate-900 leading-tight">Fintech Lead Intelligence</h1>
+            <p className="text-[11px] font-medium text-slate-500">Relationship Banking</p>
           </div>
         </div>
 
@@ -123,7 +115,7 @@ export default function B2BLeadWorkspaceDashboard() {
             onClick={() => { setActiveNav('dashboard'); setInWorkspace(false); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
               activeNav === 'dashboard'
-                ? 'bg-[#005BAC] text-white shadow-xs'
+                ? 'bg-[#1A73E8] text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
@@ -135,7 +127,7 @@ export default function B2BLeadWorkspaceDashboard() {
             onClick={() => { setActiveNav('leads'); setInWorkspace(true); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
               activeNav === 'leads'
-                ? 'bg-[#005BAC] text-white shadow-xs'
+                ? 'bg-[#1A73E8] text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
@@ -147,7 +139,7 @@ export default function B2BLeadWorkspaceDashboard() {
             onClick={() => { setActiveNav('analytics'); setInWorkspace(false); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
               activeNav === 'analytics'
-                ? 'bg-[#005BAC] text-white shadow-xs'
+                ? 'bg-[#1A73E8] text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
@@ -159,7 +151,7 @@ export default function B2BLeadWorkspaceDashboard() {
             onClick={() => { setActiveNav('settings'); setInWorkspace(false); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
               activeNav === 'settings'
-                ? 'bg-[#005BAC] text-white shadow-xs'
+                ? 'bg-[#1A73E8] text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
@@ -171,7 +163,7 @@ export default function B2BLeadWorkspaceDashboard() {
         {/* User Footer Profile */}
         <div className="border-t border-slate-200 p-4">
           <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#005BAC]/10 text-xs font-bold text-[#005BAC]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1A73E8]/10 text-xs font-bold text-[#1A73E8]">
               RM
             </div>
             <div className="min-w-0 flex-1">
@@ -190,7 +182,7 @@ export default function B2BLeadWorkspaceDashboard() {
             {inWorkspace && (
               <button
                 onClick={() => setInWorkspace(false)}
-                className="flex items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-[#005BAC]"
+                className="flex items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-[#1A73E8]"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Back to Leads List
@@ -208,12 +200,12 @@ export default function B2BLeadWorkspaceDashboard() {
               <input
                 type="text"
                 placeholder="Search leads, CIN, tenders..."
-                className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs focus:border-[#005BAC] focus:bg-white focus:outline-none"
+                className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs focus:border-[#1A73E8] focus:bg-white focus:outline-none"
               />
             </div>
             <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
               <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
-                SBI Live Feed Active
+                Live Feed Active
               </span>
             </div>
           </div>
@@ -227,7 +219,7 @@ export default function B2BLeadWorkspaceDashboard() {
               <Building2 className="mb-3 h-10 w-10 text-slate-300" />
               <h3 className="text-base font-semibold text-slate-900 capitalize">{activeNav} View</h3>
               <p className="mt-1 text-xs text-slate-500">
-                Select <button onClick={() => { setActiveNav('leads'); setInWorkspace(true); }} className="font-semibold text-[#005BAC] underline">Leads</button> to open the Lead Workspace journey.
+                Select <button onClick={() => { setActiveNav('leads'); setInWorkspace(true); }} className="font-semibold text-[#1A73E8] underline">Leads</button> to open the Lead Workspace journey.
               </p>
             </div>
           ) : !inWorkspace ? (
@@ -236,11 +228,11 @@ export default function B2BLeadWorkspaceDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">B2B Relationship Banking Leads</h2>
-                  <p className="text-xs text-slate-500">Identified corporate tenders and high-probability SBI financing leads</p>
+                  <p className="text-xs text-slate-500">Identified corporate tenders and high-probability financing leads</p>
                 </div>
                 <button
                   onClick={() => setInWorkspace(true)}
-                  className="flex items-center gap-2 rounded-lg bg-[#005BAC] px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#004b8e]"
+                  className="flex items-center gap-2 rounded-lg bg-[#1A73E8] px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#1967d2]"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   Open Lead Workspace
@@ -272,7 +264,7 @@ export default function B2BLeadWorkspaceDashboard() {
                       <td className="px-6 py-4 font-medium text-slate-900">{MOCK_LEAD.tenderValue}</td>
                       <td className="px-6 py-4">{MOCK_LEAD.location}</td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-[#005BAC] border border-blue-200">
+                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-[#1A73E8] border border-blue-200">
                           {MOCK_LEAD.currentStage}
                         </span>
                       </td>
@@ -286,7 +278,7 @@ export default function B2BLeadWorkspaceDashboard() {
                           {MOCK_LEAD.healthCheckStatus} ({MOCK_LEAD.healthCheckScore})
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-[#005BAC]">
+                      <td className="px-6 py-4 text-right font-medium text-[#1A73E8]">
                         Open Workspace →
                       </td>
                     </tr>
@@ -311,7 +303,7 @@ export default function B2BLeadWorkspaceDashboard() {
                               isCompleted
                                 ? 'bg-emerald-600 text-white'
                                 : isCurrent
-                                ? 'bg-[#005BAC] text-white ring-4 ring-blue-100'
+                                ? 'bg-[#1A73E8] text-white ring-4 ring-blue-100'
                                 : 'border border-slate-300 bg-slate-100 text-slate-400'
                             }`}
                           >
@@ -321,7 +313,7 @@ export default function B2BLeadWorkspaceDashboard() {
                             <p
                               className={`text-xs font-semibold ${
                                 isCurrent
-                                  ? 'text-[#005BAC]'
+                                  ? 'text-[#1A73E8]'
                                   : isCompleted
                                   ? 'text-slate-900'
                                   : 'text-slate-400'
@@ -354,9 +346,9 @@ export default function B2BLeadWorkspaceDashboard() {
                   <div>
                     <div className="flex items-center gap-3">
                       <h2 className="text-xl font-bold text-slate-900">{MOCK_LEAD.companyName}</h2>
-                      {MOCK_LEAD.sbiCustomerStatus && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-[#005BAC] border border-blue-200">
-                          <ShieldCheck className="h-3.5 w-3.5" /> SBI Existing CIF ({MOCK_LEAD.cifNumber})
+                      {MOCK_LEAD.existingCustomerStatus && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-[#1A73E8] border border-blue-200">
+                          <ShieldCheck className="h-3.5 w-3.5" /> Existing Customer CIF ({MOCK_LEAD.cifNumber})
                         </span>
                       )}
                     </div>
@@ -374,7 +366,7 @@ export default function B2BLeadWorkspaceDashboard() {
                       {copiedAction ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                       {copiedAction ? 'Copied Brief' : 'Share Lead'}
                     </button>
-                    <button className="flex items-center gap-1.5 rounded-lg bg-[#005BAC] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#004b8e]">
+                    <button className="flex items-center gap-1.5 rounded-lg bg-[#1A73E8] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#1967d2]">
                       <Send className="h-3.5 w-3.5" /> Fast-Track Sanction
                     </button>
                   </div>
@@ -411,7 +403,7 @@ export default function B2BLeadWorkspaceDashboard() {
 
                   <div className="rounded-lg bg-blue-50/60 p-3 border border-blue-100">
                     <span className="text-[11px] font-medium text-blue-800">Health Check Score</span>
-                    <p className="mt-0.5 text-base font-bold text-[#005BAC]">
+                    <p className="mt-0.5 text-base font-bold text-[#1A73E8]">
                       {MOCK_LEAD.healthCheckScore}/100 <span className="text-[10px] font-semibold text-blue-600">({MOCK_LEAD.healthCheckStatus})</span>
                     </p>
                   </div>
@@ -436,7 +428,7 @@ export default function B2BLeadWorkspaceDashboard() {
                         onClick={() => setActiveTab(tab.id as WorkspaceTab)}
                         className={`flex items-center gap-2 border-b-2 py-3 text-xs font-semibold transition-colors ${
                           isActive
-                            ? 'border-[#005BAC] text-[#005BAC]'
+                            ? 'border-[#1A73E8] text-[#1A73E8]'
                             : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
                         }`}
                       >
@@ -457,7 +449,7 @@ export default function B2BLeadWorkspaceDashboard() {
                     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                         <div className="flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-[#005BAC]" />
+                          <Sparkles className="h-5 w-5 text-[#1A73E8]" />
                           <h3 className="text-base font-bold text-slate-900">Qualification AI Advisory</h3>
                         </div>
                         <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
@@ -476,7 +468,7 @@ export default function B2BLeadWorkspaceDashboard() {
                             </li>
                             <li className="flex items-start gap-2">
                               <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                              <span>Existing SBI Commercial CIF with immaculate 5-year repayment record.</span>
+                              <span>Existing commercial CIF with immaculate 5-year repayment record.</span>
                             </li>
                             <li className="flex items-start gap-2">
                               <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
@@ -506,15 +498,15 @@ export default function B2BLeadWorkspaceDashboard() {
                         <div>
                           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">AI Strategic Reasoning</span>
                           <p className="mt-1 text-xs text-slate-700 leading-relaxed">
-                            Larsen & Toubro Solar Infrastructure Ltd is a premier EPC contractor with verified L1 status. Given their existing CIF relationship with SBI BKC Corporate Branch, SBI has an exclusive window to pre-empt private sector lenders by structuring a bundled Performance Bank Guarantee (₹85 Cr) and Cash Credit facility (₹120 Cr).
+                            Larsen & Toubro Solar Infrastructure Ltd is a premier EPC contractor with verified L1 status. Given their existing CIF relationship with our BKC Corporate Branch, we have an exclusive window to pre-empt private sector lenders by structuring a bundled Performance Bank Guarantee (₹85 Cr) and Cash Credit facility (₹120 Cr).
                           </p>
                         </div>
                         <div className="border-t border-slate-200 pt-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-slate-900">Recommended Action:</span>
-                            <span className="text-xs font-medium text-[#005BAC]">Dispatch pre-approved BG term sheet & schedule CFO call.</span>
+                            <span className="text-xs font-medium text-[#1A73E8]">Dispatch pre-approved BG term sheet & schedule CFO call.</span>
                           </div>
-                          <button className="rounded bg-[#005BAC] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004b8e]">
+                          <button className="rounded bg-[#1A73E8] px-3 py-1 text-xs font-semibold text-white hover:bg-[#1967d2]">
                             Execute Action
                           </button>
                         </div>
@@ -525,10 +517,10 @@ export default function B2BLeadWorkspaceDashboard() {
                     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                         <div className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-[#005BAC]" />
+                          <TrendingUp className="h-5 w-5 text-[#1A73E8]" />
                           <h3 className="text-base font-bold text-slate-900">Financial Health Summary (Probe42 Intelligence)</h3>
                         </div>
-                        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#005BAC] border border-blue-200">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#1A73E8] border border-blue-200">
                           CRISIL AA+ Rated
                         </span>
                       </div>
@@ -557,12 +549,12 @@ export default function B2BLeadWorkspaceDashboard() {
                       </div>
                     </div>
 
-                    {/* Card 3: AI Recommendations (SBI Banking Product Matches) */}
+                    {/* Card 3: AI Recommendations (Banking Product Matches) */}
                     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                         <div className="flex items-center gap-2">
-                          <Award className="h-5 w-5 text-[#005BAC]" />
-                          <h3 className="text-base font-bold text-slate-900">AI Product Recommendations for SBI Banking</h3>
+                          <Award className="h-5 w-5 text-[#1A73E8]" />
+                          <h3 className="text-base font-bold text-slate-900">AI Banking Product Recommendations</h3>
                         </div>
                         <span className="text-xs text-slate-500">Cross-sell & financing opportunities</span>
                       </div>
@@ -570,7 +562,7 @@ export default function B2BLeadWorkspaceDashboard() {
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="rounded-lg border border-blue-200 bg-blue-50/30 p-4 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-[#005BAC]">96% Match</span>
+                            <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-[#1A73E8]">96% Match</span>
                             <span className="text-xs font-bold text-slate-900">₹85 Cr Line</span>
                           </div>
                           <h4 className="text-xs font-bold text-slate-900">Performance Bank Guarantee (BG)</h4>
@@ -593,7 +585,7 @@ export default function B2BLeadWorkspaceDashboard() {
                         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">88% Match</span>
-                            <span className="text-xs font-bold text-slate-900">YONO Integration</span>
+                            <span className="text-xs font-bold text-slate-900">Mobile Banking Integration</span>
                           </div>
                           <h4 className="text-xs font-bold text-slate-900">Supply Chain Financing</h4>
                           <p className="text-[11px] text-slate-600 leading-normal">
@@ -658,15 +650,15 @@ export default function B2BLeadWorkspaceDashboard() {
                     <h3 className="text-base font-bold text-slate-900">Relationship Manager Validation & Audit Sign-off</h3>
                     <div className="space-y-3 text-xs">
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" defaultChecked className="rounded border-slate-300 text-[#005BAC]" />
+                        <input type="checkbox" defaultChecked className="rounded border-slate-300 text-[#1A73E8]" />
                         <span>Verified L1 Bidder status from official CPPP e-Procurement portal</span>
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" defaultChecked className="rounded border-slate-300 text-[#005BAC]" />
+                        <input type="checkbox" defaultChecked className="rounded border-slate-300 text-[#1A73E8]" />
                         <span>Confirmed Probe42 compliance check (No active legal defaults)</span>
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded border-slate-300 text-[#005BAC]" />
+                        <input type="checkbox" className="rounded border-slate-300 text-[#1A73E8]" />
                         <span>Obtained Credit Committee preliminary approval for ₹85 Cr Bank Guarantee limit</span>
                       </label>
                     </div>
@@ -677,9 +669,9 @@ export default function B2BLeadWorkspaceDashboard() {
                         value={reviewNote}
                         onChange={(e) => setReviewNote(e.target.value)}
                         placeholder="Add RM internal note or risk observation..."
-                        className="w-full rounded-md border border-slate-200 p-3 text-xs focus:border-[#005BAC] focus:outline-none"
+                        className="w-full rounded-md border border-slate-200 p-3 text-xs focus:border-[#1A73E8] focus:outline-none"
                       />
-                      <button className="mt-2 rounded bg-[#005BAC] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004b8e]">
+                      <button className="mt-2 rounded bg-[#1A73E8] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#1967d2]">
                         Save Review Notes
                       </button>
                     </div>
@@ -691,21 +683,21 @@ export default function B2BLeadWorkspaceDashboard() {
                   <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-base font-bold text-slate-900">AI-Generated Corporate Outreach Draft</h3>
-                      <button className="flex items-center gap-1 text-xs font-semibold text-[#005BAC]">
+                      <button className="flex items-center gap-1 text-xs font-semibold text-[#1A73E8]">
                         <RefreshCw className="h-3.5 w-3.5" /> Regenerate Pitch
                       </button>
                     </div>
                     <div className="rounded-lg bg-slate-50 p-4 border border-slate-200 text-xs space-y-2">
-                      <p className="font-semibold text-slate-900">Subject: SBI Pre-Approved ₹85 Cr Guarantee Facility — NTPC Solar Park Tender</p>
+                      <p className="font-semibold text-slate-900">Subject: Pre-Approved ₹85 Cr Guarantee Facility — NTPC Solar Park Tender</p>
                       <p className="text-slate-700 leading-relaxed">
                         Dear Mr. Varma,<br /><br />
                         Congratulations to Larsen & Toubro Solar Infrastructure Ltd on securing the L1 position for NTPC’s 500MW Ultra Mega Solar Power Project (Tender Value ₹450 Cr).<br /><br />
-                        As your primary banking partner, State Bank of India (BKC Commercial Branch) has structured a fast-track ₹85 Cr Performance Bank Guarantee and ₹120 Cr Working Capital facility with preferential pricing.<br /><br />
+                        As your primary banking partner, our BKC Commercial Branch has structured a fast-track ₹85 Cr Performance Bank Guarantee and ₹120 Cr Working Capital facility with preferential pricing.<br /><br />
                         We welcome a brief call this week with your treasury team to share the term sheet.
                       </p>
                     </div>
-                    <button className="flex items-center gap-2 rounded bg-[#005BAC] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004b8e]">
-                      <Mail className="h-3.5 w-3.5" /> Send Outreach Email via SBI Portal
+                    <button className="flex items-center gap-2 rounded bg-[#1A73E8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1967d2]">
+                      <Mail className="h-3.5 w-3.5" /> Send Outreach Email via Bank Portal
                     </button>
                   </div>
                 )}

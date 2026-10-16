@@ -1,12 +1,13 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { run, all } from '../config/database.js';
+import { createLlmClient } from '../services/llm/llmClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
 // Milestone 4: MCA record profiling. Turns raw scraped_documents rows (from
 // the Milestone 3 ingest job, source id 10) into candidate lead_profiles via
-// an OpenAI structured-output call, sitting at review_status='Pending' for a
+// a structured-output LLM call (Gemini by default), sitting at review_status='Pending' for a
 // future human-in-the-loop review screen to consume.
 
 const SOURCE_ID = 10;
@@ -32,7 +33,7 @@ const LEAD_PROFILE_SCHEMA = {
 // Rubric is enforced by the model, not computed in JS — keep it here so the
 // scoring logic stays auditable/reviewable in one place instead of buried in
 // prompt text elsewhere.
-const SYSTEM_PROMPT = `You are a credit/lead analyst for SBI, screening raw MCA (Ministry of Corporate Affairs) company registration records into candidate lead profiles for human review.
+const SYSTEM_PROMPT = `You are a credit/lead analyst for a commercial bank, screening raw MCA (Ministry of Corporate Affairs) company registration records into candidate lead profiles for human review.
 
 Score lead_score from 0-100 using this rubric:
 - Company status (~40 pts): "Active" status earns most of this weight. "Strike Off", "Dissolved", "Amalgamated", "Under liquidation" or similar inactive statuses should score very low (0-10) regardless of other factors, since the company is likely not a viable banking prospect.
@@ -64,52 +65,29 @@ function buildProfilePrompt(metadata) {
   ].join('\n');
 }
 
-async function profileRecord(metadata, { apiKey, model, baseUrl }) {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildProfilePrompt(metadata) }
-      ],
-      response_format: { type: 'json_schema', json_schema: LEAD_PROFILE_SCHEMA }
-    })
+async function profileRecord(metadata, llmClient) {
+  const { data, payload, usage } = await llmClient.chatWithMeta({
+    system: SYSTEM_PROMPT,
+    user: buildProfilePrompt(metadata),
+    schema: LEAD_PROFILE_SCHEMA.schema,
+    temperature: 0.2
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenAI API request failed with HTTP ${response.status}: ${errorBody.slice(0, 300)}`);
-  }
-
-  const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error('OpenAI response missing message content');
-  }
-
-  return { parsed: JSON.parse(content), payload };
+  return { parsed: data, payload, usage };
 }
 
-async function processDocument(doc, openAiConfig, usage) {
+async function processDocument(doc, llmClient, usage) {
   try {
-    const { parsed, payload } = await profileRecord(doc.metadata_json, openAiConfig);
+    const { parsed, payload, usage: callUsage } = await profileRecord(doc.metadata_json, llmClient);
 
     await run(
       `INSERT INTO lead_profiles (scraped_document_id, lead_score, summary, raw_llm_response, review_status) VALUES (?, ?, ?, ?, 'Pending')`,
       [doc.id, parsed.lead_score, parsed.summary, JSON.stringify(payload)]
     );
 
-    if (payload.usage) {
-      usage.prompt += payload.usage.prompt_tokens || 0;
-      usage.completion += payload.usage.completion_tokens || 0;
-      usage.total += payload.usage.total_tokens || 0;
-    }
+    usage.prompt += callUsage.prompt;
+    usage.completion += callUsage.completion;
+    usage.total += callUsage.total;
 
     console.log(`[MCA Profile] Document ${doc.id}: profiled, lead_score=${parsed.lead_score}${parsed.data_sparse ? ' (sparse data)' : ''}.`);
     return true;
@@ -121,12 +99,8 @@ async function processDocument(doc, openAiConfig, usage) {
 
 /** Profiles every scraped_documents row for the MCA source (id 10) that has metadata_json but no lead_profiles row yet. */
 export async function runMcaProfile() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY missing from .env');
-  }
-  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const llmClient = createLlmClient();
+  const { model } = llmClient;
 
   const pendingDocs = await all(
     `SELECT sd.id, sd.metadata_json
@@ -150,7 +124,7 @@ export async function runMcaProfile() {
   let failed = 0;
 
   for (const doc of pendingDocs) {
-    const ok = await processDocument(doc, { apiKey, model, baseUrl }, usage);
+    const ok = await processDocument(doc, llmClient, usage);
     if (ok) profiled++;
     else failed++;
   }

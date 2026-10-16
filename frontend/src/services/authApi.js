@@ -7,7 +7,7 @@ import { BACKEND_URL } from '../constants/dashboard';
 // localStorage key SourceRegistry.jsx already uses, so an existing
 // session keeps working unchanged.
 
-const TOKEN_KEY = 'sbi_source_registry_token';
+const TOKEN_KEY = 'source_registry_token';
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);

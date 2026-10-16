@@ -2,34 +2,34 @@ const GENERIC_RESEARCH_LINE = 'We have initiated research on your company';
 
 const PRODUCT_CATALOG = {
   tender: [
-    'SBI Bank Guarantee for bid, performance and retention money requirements',
-    'SBI Cash Credit or Working Capital Demand Loan for mobilization, payroll and supplier advances',
-    'SBI Supply Chain Finance or Invoice Discounting to bridge receivables after milestone billing'
+    'Bank Guarantee for bid, performance and retention money requirements',
+    'Cash Credit or Working Capital Demand Loan for mobilization, payroll and supplier advances',
+    'Supply Chain Finance or Invoice Discounting to bridge receivables after milestone billing'
   ],
   expansion: [
-    'SBI Term Loan for project setup, machinery, fit-outs and implementation costs',
-    'SBI Cash Credit for inventory and operating cycles during ramp-up',
-    'SBI Cash Management Services for vendor, payroll and collection flows'
+    'Term Loan for project setup, machinery, fit-outs and implementation costs',
+    'Cash Credit for inventory and operating cycles during ramp-up',
+    'Cash Management Services for vendor, payroll and collection flows'
   ],
   funding: [
-    'SBI Working Capital Finance to convert growth plans into day-to-day execution capacity',
-    'SBI Current Account and Cash Management Services for stronger treasury control',
-    'SBI Corporate Internet Banking and payment solutions for scalable collections and payouts'
+    'Working Capital Finance to convert growth plans into day-to-day execution capacity',
+    'Current Account and Cash Management Services for stronger treasury control',
+    'Corporate Internet Banking and payment solutions for scalable collections and payouts'
   ],
   export: [
-    'SBI Letter of Credit and Bank Guarantee facilities for buyer and supplier commitments',
-    'SBI Export Packing Credit and Post-Shipment Finance for order-to-cash cycles',
-    'SBI Forex and Trade Finance advisory for cross-border settlement planning'
+    'Letter of Credit and Bank Guarantee facilities for buyer and supplier commitments',
+    'Export Packing Credit and Post-Shipment Finance for order-to-cash cycles',
+    'Forex and Trade Finance advisory for cross-border settlement planning'
   ],
   equipment: [
-    'SBI Equipment Finance for machinery, fleet, medical equipment or automation assets',
-    'SBI Term Loan for related installation and project costs',
-    'SBI Cash Credit for spares, consumables and operating expenses'
+    'Equipment Finance for machinery, fleet, medical equipment or automation assets',
+    'Term Loan for related installation and project costs',
+    'Cash Credit for spares, consumables and operating expenses'
   ],
   growth: [
-    'SBI Working Capital Finance for larger order books and operating cycles',
-    'SBI Cash Credit to manage inventory, receivables and supplier payments',
-    'SBI Cash Management Services for collections, payments and account visibility'
+    'Working Capital Finance for larger order books and operating cycles',
+    'Cash Credit to manage inventory, receivables and supplier payments',
+    'Cash Management Services for collections, payments and account visibility'
   ]
 };
 
@@ -134,23 +134,23 @@ function sectorFocus(sector) {
 
 function buildEmailPrompt(context) {
   return [
-    'Write a personalized relationship-manager email for SBI.',
+    'Write a personalized relationship-manager email from our bank.',
     '',
     'Requirements:',
     '- Start by congratulating the customer on the recent achievement.',
     '- Explain how the achievement can create financial needs such as working capital, project funding, guarantees, trade finance, receivables support or cash management.',
-    '- Recommend relevant SBI banking products from the provided product list.',
+    '- Recommend relevant banking products from the provided product list.',
     '- Make the email longer, customer-oriented, warm, consultative and conversational.',
     '- Avoid generic research language. Do not write: "We are researching your company" or "We have initiated research on your company."',
     '- Do not invent exact loan amounts, rates, approval promises or compliance claims.',
-    '- Include a practical next step for a short discussion with an SBI relationship manager.',
+    '- Include a practical next step for a short discussion with one of our relationship managers.',
     '',
     `Customer: ${context.companyName}`,
     `Sector: ${context.sector}`,
     `Focus area: ${context.focusArea}`,
     `Recent achievement: ${context.achievement}`,
     `Likely financial need: ${context.financialNeed}`,
-    `Recommended SBI products: ${context.products.join('; ')}`,
+    `Recommended products: ${context.products.join('; ')}`,
     '',
     'Return only the email body.'
   ].join('\n');
@@ -176,7 +176,7 @@ async function generateWithLlm(prompt, options = {}) {
         messages: [
           {
             role: 'system',
-            content: 'You write compliant, specific and helpful B2B banking outreach emails for SBI relationship managers.'
+            content: 'You write compliant, specific and helpful B2B banking outreach emails for bank relationship managers.'
           },
           { role: 'user', content: prompt }
         ]
@@ -206,12 +206,12 @@ ${context.achievement}. It is always encouraging to see a business reach a point
 
 At the same time, achievements like this often create very practical financial requirements. You may need funds to mobilize people and materials, pay suppliers before customer receipts come in, arrange guarantees or security deposits, or keep enough liquidity available while project milestones and collections move at different speeds. In other words, the opportunity is positive, but the cash-flow planning around it matters just as much as the win itself.
 
-Based on your ${context.sector} profile and the signal around ${context.focusArea}, SBI can support you with ${primaryProduct}. This can be paired with ${secondaryProduct} so day-to-day expenses, vendor payments and receivables are easier to manage while the new opportunity is being executed. Where relevant, we can also explore ${tertiaryProduct} to give your finance team more flexibility across the full operating cycle.
+Based on your ${context.sector} profile and the signal around ${context.focusArea}, we can support you with ${primaryProduct}. This can be paired with ${secondaryProduct} so day-to-day expenses, vendor payments and receivables are easier to manage while the new opportunity is being executed. Where relevant, we can also explore ${tertiaryProduct} to give your finance team more flexibility across the full operating cycle.
 
-We would be happy to understand the project timeline, expected billing milestones, supplier payment terms and any guarantee requirements. With that context, an SBI relationship manager can suggest a banking structure that is practical for your current requirement and scalable for future opportunities.
+We would be happy to understand the project timeline, expected billing milestones, supplier payment terms and any guarantee requirements. With that context, our relationship manager can suggest a banking structure that is practical for your current requirement and scalable for future opportunities.
 
-Would you be open to a short discussion this week to map the opportunity against the right SBI working capital, project funding and transaction banking options?
+Would you be open to a short discussion this week to map the opportunity against the right working capital, project funding and transaction banking options?
 
 Warm regards,
-SBI Relationship Manager Team`;
+Relationship Manager Team`;
 }

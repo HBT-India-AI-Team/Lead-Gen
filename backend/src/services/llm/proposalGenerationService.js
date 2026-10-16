@@ -1,8 +1,8 @@
-import { OllamaClient } from './ollamaClient.js';
+import { createLlmClient } from './llmClient.js';
 import { buildProposalPrompt } from './proposalPromptBuilder.js';
 
 // Turns a real evidence bundle into a structured banking-proposal draft via
-// Ollama, then strictly validates the response shape before it's trusted
+// the configured LLM (Gemini by default), then strictly validates the response shape before it's trusted
 // anywhere else — same constructor-injection + throw-on-invalid-shape
 // pattern as qualificationAiAnalysisService.js (PHASE 1), applied to the
 // PHASE 2 proposal response contract instead.
@@ -23,12 +23,12 @@ function isNonEmptyString(value) {
 }
 
 export class ProposalGenerationService {
-  constructor({ ollamaClient = new OllamaClient() } = {}) {
-    this.ollamaClient = ollamaClient;
+  constructor({ llmClient = createLlmClient() } = {}) {
+    this.llmClient = llmClient;
   }
 
   /**
-   * Runs one evidence bundle through Ollama and returns the validated
+   * Runs one evidence bundle through the LLM and returns the validated
    * proposal draft. Throws on any connectivity failure or shape/enum
    * violation — callers must treat a thrown error as "proposal generation
    * failed" and must never persist a fabricated fallback in its place (see
@@ -40,20 +40,20 @@ export class ProposalGenerationService {
     }
 
     const { system, user } = buildProposalPrompt(evidence);
-    const parsed = await this.ollamaClient.chat({ system, user });
+    const parsed = await this.llmClient.chat({ system, user });
 
     return this.#validate(parsed);
   }
 
   #validate(parsed) {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('Ollama proposal response is not a JSON object.');
+      throw new Error('AI proposal response is not a JSON object.');
     }
 
     const { proposalStatus, recommendedProduct, estimatedFundingRequirement, proposalScore, rationale, missingInformation, email } = parsed;
 
     if (!PROPOSAL_STATUS_VALUES.includes(proposalStatus)) {
-      throw new Error(`Ollama proposal response returned an invalid proposalStatus: ${JSON.stringify(proposalStatus)}.`);
+      throw new Error(`AI proposal response returned an invalid proposalStatus: ${JSON.stringify(proposalStatus)}.`);
     }
 
     if (recommendedProduct !== null) {
@@ -63,7 +63,7 @@ export class ProposalGenerationService {
         !isNonEmptyString(recommendedProduct.name) ||
         !isNonEmptyString(recommendedProduct.reason)
       ) {
-        throw new Error('Ollama proposal response returned an invalid recommendedProduct (must be null or { name, reason } with non-empty strings).');
+        throw new Error('AI proposal response returned an invalid recommendedProduct (must be null or { name, reason } with non-empty strings).');
       }
     }
 
@@ -72,32 +72,32 @@ export class ProposalGenerationService {
       typeof estimatedFundingRequirement !== 'object' ||
       Array.isArray(estimatedFundingRequirement)
     ) {
-      throw new Error('Ollama proposal response returned an invalid estimatedFundingRequirement object.');
+      throw new Error('AI proposal response returned an invalid estimatedFundingRequirement object.');
     }
     const { amount, currency, basis } = estimatedFundingRequirement;
     if (amount !== null && !(typeof amount === 'number' && Number.isFinite(amount) && amount >= 0)) {
-      throw new Error(`Ollama proposal response returned an invalid estimatedFundingRequirement.amount: ${JSON.stringify(amount)}.`);
+      throw new Error(`AI proposal response returned an invalid estimatedFundingRequirement.amount: ${JSON.stringify(amount)}.`);
     }
     if (currency !== 'INR') {
-      throw new Error(`Ollama proposal response returned an invalid estimatedFundingRequirement.currency: ${JSON.stringify(currency)}.`);
+      throw new Error(`AI proposal response returned an invalid estimatedFundingRequirement.currency: ${JSON.stringify(currency)}.`);
     }
     if (!isNonEmptyString(basis)) {
-      throw new Error('Ollama proposal response returned an empty estimatedFundingRequirement.basis.');
+      throw new Error('AI proposal response returned an empty estimatedFundingRequirement.basis.');
     }
 
     if (proposalScore !== null && !(typeof proposalScore === 'number' && Number.isInteger(proposalScore) && proposalScore >= 0 && proposalScore <= 100)) {
-      throw new Error(`Ollama proposal response returned an invalid proposalScore: ${JSON.stringify(proposalScore)}.`);
+      throw new Error(`AI proposal response returned an invalid proposalScore: ${JSON.stringify(proposalScore)}.`);
     }
 
     if (!isStringArray(rationale) || rationale.length === 0) {
-      throw new Error('Ollama proposal response returned an invalid or empty rationale array.');
+      throw new Error('AI proposal response returned an invalid or empty rationale array.');
     }
     if (!isStringArray(missingInformation)) {
-      throw new Error('Ollama proposal response returned an invalid missingInformation array.');
+      throw new Error('AI proposal response returned an invalid missingInformation array.');
     }
 
     if (!email || typeof email !== 'object' || Array.isArray(email) || !isNonEmptyString(email.subject) || !isNonEmptyString(email.body)) {
-      throw new Error('Ollama proposal response returned an invalid email object (requires non-empty subject and body).');
+      throw new Error('AI proposal response returned an invalid email object (requires non-empty subject and body).');
     }
 
     return {

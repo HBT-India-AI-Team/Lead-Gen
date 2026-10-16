@@ -1,4 +1,4 @@
-# LeadGen Intelligence Platform
+# Fintech Lead Intelligence
 
 An internal lead-generation and qualification tool for relationship managers. It scrapes public government e-tender portals, enriches winning companies with corporate-registry and financial data, runs a deterministic + AI-assisted scoring pipeline to qualify each tender as a banking lead, and takes surviving leads through a human-in-the-loop proposal and outreach workflow. A React dashboard covers the tender pipeline, human review, communication drafts, and analytics.
 

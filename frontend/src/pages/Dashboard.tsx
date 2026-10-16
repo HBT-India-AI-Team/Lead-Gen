@@ -528,7 +528,7 @@ function Dashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-ink">Dashboard</h2>
-          <p className="mt-1 text-sm text-ink-soft">Enterprise overview of LeadGen AI.</p>
+          <p className="mt-1 text-sm text-ink-soft">Enterprise overview of Fintech Lead Intelligence.</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-ink-muted">{today}</span>

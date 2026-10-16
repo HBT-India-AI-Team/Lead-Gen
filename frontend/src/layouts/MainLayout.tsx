@@ -36,6 +36,13 @@ function MainLayout() {
 
   return (
     <div className="min-h-screen bg-canvas">
+      {/* First focusable element: lets keyboard users jump past the nav. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary focus:shadow-card"
+      >
+        Skip to main content
+      </a>
       <Sidebar collapsed={collapsed} lastVisited={lastVisited} />
 
       <div
@@ -44,7 +51,7 @@ function MainLayout() {
       >
         <Topbar title={pageTitle} collapsed={collapsed} onToggleSidebar={() => setCollapsed((value) => !value)} />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6 focus:outline-none">
           <Outlet />
         </main>
       </div>

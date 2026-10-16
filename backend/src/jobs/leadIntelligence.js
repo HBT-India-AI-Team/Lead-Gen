@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createLlmClient } from '../services/llm/llmClient.js';
 import { ensureLeadIntelligenceSchema } from '../db/migrations/addLeadIntelligenceTable.js';
 import { findPendingAnalysis, saveIntelligence } from '../repositories/leadIntelligenceRepository.js';
 import { analyzeTender } from '../services/intelligence/leadIntelligenceService.js';
@@ -14,12 +15,8 @@ const LOG_PREFIX = '[Lead Intelligence]';
 // reads tender_extractions/tenders/scraped_documents.
 
 export async function runLeadIntelligence() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY missing from .env');
-  }
-  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const llmClient = createLlmClient();
+  const { model } = llmClient;
 
   await ensureLeadIntelligenceSchema();
 
@@ -44,7 +41,7 @@ export async function runLeadIntelligence() {
         throw new Error('No usable tender content available for analysis.');
       }
 
-      const { fields, payload } = await analyzeTender(record, { apiKey, model, baseUrl });
+      const { fields, payload, usage: callUsage } = await analyzeTender(record, { llmClient });
 
       await saveIntelligence({
         tenderExtractionId: record.tender_extraction_id,
@@ -54,11 +51,9 @@ export async function runLeadIntelligence() {
         rawLlmResponse: payload
       });
 
-      if (payload.usage) {
-        usage.prompt += payload.usage.prompt_tokens || 0;
-        usage.completion += payload.usage.completion_tokens || 0;
-        usage.total += payload.usage.total_tokens || 0;
-      }
+      usage.prompt += callUsage.prompt;
+      usage.completion += callUsage.completion;
+      usage.total += callUsage.total;
 
       analyzed++;
       console.log(`${LOG_PREFIX} Tender extraction ${record.tender_extraction_id}: scored ${fields.opportunityScore} (${fields.leadPriority}).`);

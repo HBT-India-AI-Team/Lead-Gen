@@ -16,6 +16,9 @@ import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import { ScoreBreakdownToggle, ScoreBreakdownPanel } from '../components/leads/ScoreBreakdown';
 import type { QualificationFactors } from '../components/leads/ScoreBreakdown';
+import AiAdvisoryEvidence from '../components/leads/AiAdvisoryEvidence';
+import type { QualificationAiAnalysis, QualificationEvidenceSnapshot } from '../components/leads/AiAdvisoryEvidence';
+import DecisionTrail from '../components/leads/DecisionTrail';
 import { fetchLeads, fetchLeadProposal, reviewLeadProposal } from '../services/leadsApi';
 import { formatDate, tenderTitleFrom, tenderLocation } from '../utils/tenderFormatters';
 
@@ -57,15 +60,8 @@ interface Lead {
   // Settings' own "Check a Company" lookup panel, not surfaced per-lead
   // here.
   qualification_reason: {
-    aiAnalysis?: {
-      status: string;
-      score?: number;
-      classification?: string;
-      confidence?: number;
-      reasoning?: string;
-      positiveSignals?: string[];
-      riskFactors?: string[];
-    };
+    aiAnalysis?: QualificationAiAnalysis;
+    evidence?: QualificationEvidenceSnapshot | null;
     factors?: QualificationFactors;
   } | null;
 }
@@ -247,7 +243,9 @@ function ProposalReviewPanel({ lead, tenderId }: { lead: Lead; tenderId: string 
   const queryClient = useQueryClient();
   const [reviewComment, setReviewComment] = useState('');
   const [pendingDecision, setPendingDecision] = useState<string | null>(null);
-  const [scoreBreakdownExpanded, setScoreBreakdownExpanded] = useState(false);
+  // Open by default here: this is the screen where a reviewer decides, so
+  // the evidence behind the score should be in view without a click.
+  const [scoreBreakdownExpanded, setScoreBreakdownExpanded] = useState(true);
 
   const proposalQuery = useQuery({
     queryKey: ['lead-proposal', tenderId],
@@ -259,6 +257,7 @@ function ProposalReviewPanel({ lead, tenderId }: { lead: Lead; tenderId: string 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead-proposal', tenderId] });
       queryClient.invalidateQueries({ queryKey: ['human-review-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-decision-trail', tenderId] });
       setPendingDecision(null);
       setReviewComment('');
     },
@@ -332,40 +331,28 @@ function ProposalReviewPanel({ lead, tenderId }: { lead: Lead; tenderId: string 
 
         {lead.qualification_score != null && scoreBreakdownExpanded && (
           <div className="mt-3">
-            <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} />
+            <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} score={lead.qualification_score} />
           </div>
         )}
 
         {aiAnalysis && (
-          <div className="mt-4 ml-1 rounded-xl border border-dashed border-hairline-strong bg-surface-muted p-4">
-            <p className="text-xs font-bold uppercase tracking-wide text-ink-muted">
-              AI Advisory Analysis
-            </p>
-            {aiAnalysis.status === 'AVAILABLE' ? (
-              <div className="mt-2 grid gap-2">
-                <p className="text-xs text-ink-soft">
-                  Advisory score {aiAnalysis.score} · {aiAnalysis.classification} · confidence {aiAnalysis.confidence}
-                </p>
-                {aiAnalysis.reasoning && <p className="text-sm text-ink-soft">{aiAnalysis.reasoning}</p>}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-ink-muted">AI advisory analysis unavailable for this lead.</p>
-            )}
+          <div className="mt-4 ml-1">
+            <AiAdvisoryEvidence aiAnalysis={aiAnalysis} evidence={lead.qualification_reason?.evidence} />
           </div>
         )}
       </Card>
 
       {/* Company / Tender — supporting metadata for the decision above, not
           part of it; visually secondary (no accent, plain cards) and placed
-          after the qualification comparison rather than before it. No
-          "Industry" field is shown since none is persisted anywhere this
-          screen can read (the evidence bundle that had one was never
-          stored, only used to build the Ollama prompt). */}
+          after the qualification comparison rather than before it. Industry
+          comes from the evidence snapshot the AI was shown, when one was
+          recorded. */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="p-5">
           <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Company</h3>
           <div className="mt-4 grid gap-4">
             <Field label="Company Name" value={lead.winning_company_name} />
+            <Field label="Industry" value={lead.qualification_reason?.evidence?.company?.industry ?? null} />
             <Field label="Location" value={tenderLocation(lead) === '—' ? null : tenderLocation(lead)} />
           </div>
         </Card>
@@ -494,8 +481,9 @@ function ProposalReviewPanel({ lead, tenderId }: { lead: Lead; tenderId: string 
             )}
 
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Review Comment</label>
+              <label htmlFor={`review-comment-${tenderId}`} className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Review Comment</label>
               <textarea
+                id={`review-comment-${tenderId}`}
                 className="mt-1.5 h-24 w-full resize-none rounded-lg border border-hairline-strong bg-white px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-primary focus:ring-4 focus:ring-primary/10"
                 placeholder="Optional — e.g. &quot;Please change the recommended product.&quot;"
                 value={reviewComment}
@@ -543,6 +531,8 @@ function ProposalReviewPanel({ lead, tenderId }: { lead: Lead; tenderId: string 
           </div>
         )}
       </Card>
+
+      <DecisionTrail tenderId={tenderId} />
     </div>
   );
 }

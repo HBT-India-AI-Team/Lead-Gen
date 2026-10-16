@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   LeadGen AI — SBI Corporate Banking design tokens (single source of truth)
+   Fintech Lead Intelligence — design tokens (single source of truth)
    ----------------------------------------------------------------------------
    Every color/radius/shadow the shell and pages use is defined ONCE here as a
    Tailwind v4 @theme token, so components reference semantic utility classes
@@ -9,28 +9,28 @@
    raw #hex arbitrary values. Change the brand in one place and the whole app
    follows. Mirrors (and supersedes) the documentation in theme/colors.ts.
 
-   Palette: authentic SBI blue (#005BAC) family + a muted gold accent, used
+   Palette: Google Blue (#1A73E8) family + a Google Yellow accent, used
    sparingly. Signature element: the "ledger" left-edge accent bar (see the
    .ledger utilities below) carried across active nav, selected rows, and key
    stat cards — echoing a passbook/ledger rule.
    ========================================================================= */
 @theme {
-  /* Brand — SBI blue */
-  --color-primary: #005bac;
-  --color-primary-hover: #004a8c;
-  --color-primary-strong: #003968;
-  --color-primary-tint: #e6f0fa; /* low-opacity fills, hover backgrounds */
-  --color-primary-tint-2: #cce1f5;
-  --color-secondary: #1976d2; /* accents, focus, ledger bar */
+  /* Brand — Google Blue */
+  --color-primary: #1967d2; /* Google Blue 700: 5.3:1 with white text, 4.7:1 on primary-tint (AA) */
+  --color-primary-hover: #185abc;
+  --color-primary-strong: #174ea6;
+  --color-primary-tint: #e8f0fe; /* low-opacity fills, hover backgrounds */
+  --color-primary-tint-2: #d2e3fc;
+  --color-secondary: #1967d2; /* accents, focus, ledger bar */
 
-  /* Accent — muted SBI gold (used sparingly: highlights, never a flood) */
-  --color-gold: #c89b3c;
-  --color-gold-soft: #f7edd6;
+  /* Accent — Google Yellow (used sparingly: highlights, never a flood) */
+  --color-accent: #fbbc04;
+  --color-accent-soft: #fef7e0;
 
   /* Ink (text) */
   --color-ink: #0f1b2d;
   --color-ink-soft: #48576b;
-  --color-ink-muted: #8996a6;
+  --color-ink-muted: #5f6b7a; /* 5.1:1 on canvas — was #8996a6 (2.8:1, failed AA) */
   --color-ink-inverse: #ffffff;
 
   /* Surfaces */
@@ -53,9 +53,9 @@
   --color-danger: #c62828;
   --color-danger-bg: #fdecea;
   --color-danger-border: #ef9a9a;
-  --color-info: #1976d2;
-  --color-info-bg: #e9f2fc;
-  --color-info-border: #7baee8;
+  --color-info: #1967d2;
+  --color-info-bg: #e8f0fe;
+  --color-info-border: #8ab4f8;
   --color-neutral: #48576b;
   --color-neutral-bg: #eef2f6;
   --color-neutral-border: #d3dbe4;
@@ -117,6 +117,19 @@ textarea:disabled {
   outline: 2px solid var(--color-secondary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Reduced motion — honour the OS setting: no card lift, spinners or
+   transitions for users who've asked the system to minimise motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Scrollbars — quiet, brand-neutral */

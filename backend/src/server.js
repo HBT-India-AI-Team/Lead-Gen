@@ -10,6 +10,7 @@ import { ensureLeadQualificationSchema } from './db/migrations/addLeadQualificat
 import { ensureProposalGenerationSchema } from './db/migrations/addProposalGenerationSchema.js';
 import { ensureProposalReviewSchema } from './db/migrations/addProposalReviewSchema.js';
 import { ensureCommunicationPreparationSchema } from './db/migrations/addCommunicationPreparationSchema.js';
+import { ensureLeadDecisionEventsSchema } from './db/migrations/addLeadDecisionEventsSchema.js';
 import { ensureLeadSignalsSchema } from './db/migrations/addLeadSignalsSchema.js';
 import discoveryRoutes from './routes/discovery.js';
 import proposalsRoutes from './routes/proposals.js';
@@ -57,7 +58,7 @@ app.use('/api/leads', leadsRoutes);
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    service: 'SBI LeadGen Intelligence Platform API',
+    service: 'Fintech Lead Intelligence API',
     version: '1.0.0'
   });
 });
@@ -91,10 +92,11 @@ async function startServer() {
     await ensureProposalGenerationSchema();
     await ensureProposalReviewSchema();
     await ensureCommunicationPreparationSchema();
+    await ensureLeadDecisionEventsSchema();
 
     app.listen(PORT, () => {
       console.log(`====================================================`);
-      console.log(`SBI LeadGen Intelligence Platform Backend is ONLINE`);
+      console.log(`Fintech Lead Intelligence backend is ONLINE`);
       console.log(`Server URL: http://localhost:${PORT}`);
       console.log(`CORS enabled for origins: http://localhost:3000`);
       console.log(`====================================================`);

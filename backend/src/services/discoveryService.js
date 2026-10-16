@@ -7,7 +7,7 @@ import { ApiError } from '../utils/ApiError.js';
 // the unrelated BankingRecommendationService — these are legacy demo
 // helpers for the /api/v1/discovery flow, not part of that rule engine.
 
-/** Infers the primary SBI product/service to pitch based on sector/tag keywords. */
+/** Infers the primary banking product/service to pitch based on sector/tag keywords. */
 function inferPrimaryService(sector = '', tags = '') {
   const text = `${sector} ${tags}`.toLowerCase();
   if (/(tender|procurement|government|contract)/.test(text)) return 'Bank Guarantee';

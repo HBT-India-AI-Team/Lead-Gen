@@ -6,7 +6,7 @@
 // resolveReviewerIdentity) keeps working unchanged.
 const SYSTEM_USER = {
   id: 1,
-  email: 'admin@sbi.com',
+  email: 'admin@leadgen.local',
   firstName: 'System',
   lastName: 'Administrator',
   role: 'Admin',

@@ -19,7 +19,7 @@ function Card({ className, children, accent = false, ...props }: CardProps) {
       className={cn(
         'relative overflow-hidden rounded-card border border-hairline bg-surface shadow-card',
         'transition-all duration-200 ease-out',
-        'hover:-translate-y-0.5 hover:border-primary-tint-2 hover:shadow-card-hover',
+        'hover:-translate-y-0.5 hover:border-primary-tint-2 hover:shadow-card-hover motion-reduce:hover:translate-y-0',
         accent && 'pl-1',
         className
       )}

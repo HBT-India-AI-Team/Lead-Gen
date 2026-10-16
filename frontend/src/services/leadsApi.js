@@ -107,3 +107,10 @@ export async function reviewLeadCommunication(tenderId, { decision, reviewCommen
   });
   return parseJson(response);
 }
+/** GET /api/leads/:id/decision-trail — every rules/AI/human decision taken on this lead, oldest first. */
+export async function fetchLeadDecisionTrail(tenderId) {
+  const response = await fetch(`${BACKEND_URL}/api/leads/${encodeURIComponent(tenderId)}/decision-trail`, {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJson(response);
+}

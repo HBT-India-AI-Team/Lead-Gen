@@ -4,9 +4,11 @@ import axios from 'axios';
 // file knows nothing about LeadAnalysis, prompts, or banking — it only
 // sends chat messages to Ollama and returns parsed JSON, with retry,
 // timeout and error-handling as configurable, domain-agnostic behavior.
-// All prompt/business logic lives in ollamaPromptBuilder.js and
-// ollamaAnalysisService.js, never here.
+// All prompt/business logic lives in the prompt builders and services
+// alongside it, never here. Selected via llmClient.js (LLM_PROVIDER=ollama)
+// as the offline fallback to geminiClient.js, typically running gemma3.
 
+const DEFAULT_MODEL = 'gemma3';
 const DEFAULT_TIMEOUT_MS = 60000;
 const DEFAULT_RETRIES = 2;
 const DEFAULT_RETRY_DELAY_MS = 1000;
@@ -25,7 +27,7 @@ function stripCodeFences(text) {
 export class OllamaClient {
   /**
    * baseUrl/model default from OLLAMA_BASE_URL/OLLAMA_DEFAULT_MODEL (read
-   * at construction time, never hardcoded) but can be overridden per
+   * at construction time; model falls back to gemma3) but can be overridden per
    * instance or per call — e.g. to route a specific call at a different
    * model (OLLAMA_SUMMARY_MODEL, OLLAMA_RISK_MODEL, etc., if a caller
    * chooses to use them; this client has no opinion on which model any
@@ -33,7 +35,7 @@ export class OllamaClient {
    */
   constructor({
     baseUrl = process.env.OLLAMA_BASE_URL,
-    model = process.env.OLLAMA_DEFAULT_MODEL,
+    model = process.env.OLLAMA_DEFAULT_MODEL || DEFAULT_MODEL,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     retries = DEFAULT_RETRIES,
     retryDelayMs = DEFAULT_RETRY_DELAY_MS
@@ -41,10 +43,7 @@ export class OllamaClient {
     if (!baseUrl) {
       throw new Error('OllamaClient requires a base URL — set OLLAMA_BASE_URL in .env or pass baseUrl explicitly.');
     }
-    if (!model) {
-      throw new Error('OllamaClient requires a model — set OLLAMA_DEFAULT_MODEL in .env or pass model explicitly.');
-    }
-
+    this.provider = 'ollama';
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.model = model;
     this.timeoutMs = timeoutMs;
@@ -70,7 +69,18 @@ export class OllamaClient {
    * or a response that isn't valid JSON) fails immediately since retrying
    * it would just reproduce the same error.
    */
-  async chat({ system, user, model = this.model, format = 'json', options = {} } = {}) {
+  async chat(params = {}) {
+    const { data } = await this.chatWithMeta(params);
+    return data;
+  }
+
+  /**
+   * Same as chat(), but also returns the raw response payload and
+   * normalized token usage ({ prompt, completion, total }). `schema`, when
+   * given, is passed as Ollama's structured-output `format`; format 'text'
+   * returns the reply as a plain string instead of parsed JSON.
+   */
+  async chatWithMeta({ system, user, model = this.model, format = 'json', schema, temperature, options = {} } = {}) {
     if (!user) {
       throw new Error('OllamaClient.chat() requires a "user" message.');
     }
@@ -88,11 +98,20 @@ export class OllamaClient {
           model,
           messages,
           stream: false,
-          format,
-          options
+          ...(format === 'json' ? { format: schema || 'json' } : {}),
+          options: temperature === undefined ? options : { ...options, temperature }
         });
 
-        return this.#parseJsonContent(response.data);
+        const payload = response.data;
+        return {
+          data: format === 'json' ? this.#parseJsonContent(payload) : this.#textContent(payload),
+          payload,
+          usage: {
+            prompt: payload.prompt_eval_count || 0,
+            completion: payload.eval_count || 0,
+            total: (payload.prompt_eval_count || 0) + (payload.eval_count || 0)
+          }
+        };
       } catch (error) {
         lastError = this.#normalizeError(error);
 
@@ -110,12 +129,16 @@ export class OllamaClient {
     throw lastError;
   }
 
-  #parseJsonContent(data) {
+  #textContent(data) {
     const content = data?.message?.content;
     if (!content) {
       throw new Error('Ollama response did not include message content.');
     }
+    return content;
+  }
 
+  #parseJsonContent(data) {
+    const content = this.#textContent(data);
     const cleaned = stripCodeFences(content);
 
     try {

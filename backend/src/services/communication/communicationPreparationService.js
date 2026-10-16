@@ -1,6 +1,7 @@
 import * as tenderService from '../tenderService.js';
 import * as tenderProposalRepository from '../../repositories/tenderProposalRepository.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { recordDecisionEvent } from '../decisionTrailService.js';
 
 // PHASE 4 — Communication Preparation + Communication Review. Sibling to
 // proposalPipelineService.js (PHASE 2/3), same layered shape: read the real
@@ -141,6 +142,17 @@ export async function prepareCommunication(tenderId) {
     ? row
     : await tenderProposalRepository.recordCommunicationPreparation(row.id, { communicationStatus: 'DRAFT_READY' });
 
+  // Only the first preparation is a decision; re-running it is a no-op.
+  if (!row.communication_status) {
+    await recordDecisionEvent({
+      tenderId,
+      eventType: 'COMMUNICATION_PREPARED',
+      actorType: 'SYSTEM',
+      actor: 'Communication pipeline',
+      decision: 'DRAFT_READY',
+    });
+  }
+
   return toCommunicationShape(tenderId, updated);
 }
 
@@ -168,6 +180,16 @@ export async function reviewCommunication(tenderId, { decision, reviewComment },
 
   const communicationStatus = COMMUNICATION_DECISION_TO_STATUS[decision];
   const updated = await tenderProposalRepository.recordCommunicationReview(row.id, { communicationStatus, reviewComment, reviewedBy });
+
+  await recordDecisionEvent({
+    tenderId,
+    eventType: 'COMMUNICATION_REVIEWED',
+    actorType: 'HUMAN',
+    actor: reviewedBy,
+    decision,
+    comment: reviewComment ?? null,
+    details: { resultingStatus: communicationStatus, previousStatus: row.communication_status },
+  });
 
   return toCommunicationShape(tenderId, updated);
 }

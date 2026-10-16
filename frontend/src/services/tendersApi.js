@@ -73,7 +73,7 @@ export async function fetchTenderById(tenderId) {
   return parseJson(response);
 }
 
-/** SBI Customer Check step — matches the tender's winning company against the demo customer dataset. */
+/** Existing Customer Check step — matches the tender's winning company against the demo customer dataset. */
 export async function fetchSbiCheck(tenderId) {
   const response = await fetch(`${BACKEND_URL}/api/tenders/${encodeURIComponent(tenderId)}/sbi-check`, {
     headers: { Accept: 'application/json' },
