@@ -24,6 +24,7 @@ router.post('/:id/proposal', leadController.proposal);
 router.get('/:id/proposal', leadController.getProposal);
 router.patch('/:id/proposal/review', leadController.review);
 router.get('/:id/decision-trail', leadController.decisionTrail);
+router.get('/:id/recommendations', leadController.recommendations);
 router.get('/:id/communication', leadController.getCommunication);
 router.post('/:id/communication/prepare', leadController.prepareCommunicationHandler);
 router.patch('/:id/communication/review', leadController.reviewCommunicationHandler);

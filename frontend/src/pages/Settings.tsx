@@ -28,7 +28,20 @@ import LeadCategorySettings from '../components/settings/LeadCategorySettings';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import { updateProfile as updateProfileRequest, changePassword as changePasswordRequest } from '../services/userApi';
 import { fetchTenders } from '../services/tendersApi';
+import { fetchAiStatus } from '../services/aiApi';
 import { BACKEND_URL } from '../constants/dashboard';
+
+interface AiStatus {
+  configured: boolean;
+  provider: string;
+  model: string | null;
+  reason?: string;
+}
+
+const PROVIDER_LABELS: Record<string, string> = {
+  gemini: 'Google Gemini',
+  ollama: 'Gemma via Ollama (local fallback)',
+};
 import { formatDate } from '../utils/tenderFormatters';
 import { cn } from '../utils/formatters';
 import {
@@ -207,10 +220,15 @@ function Settings() {
     queryFn: () => fetchTenders({ sort_by: 'created_at', order: 'desc', limit: 1, page: 1 }) as Promise<DataSyncResponse>,
   });
 
-  // The only real, checkable signal anywhere in this app: the backend's own
-  // unauthenticated root route (same pattern Dashboard.tsx already uses).
-  // There is no separate MySQL or Ollama health endpoint to reuse — both
-  // are reported as unavailable below rather than inferred from this.
+  // The configured LLM provider/model, from the backend (no model call).
+  const aiStatusQuery = useQuery({
+    queryKey: ['settings-ai-status'],
+    queryFn: () => fetchAiStatus() as Promise<AiStatus>,
+    retry: 0,
+  });
+
+  // The backend's own unauthenticated root route (same pattern
+  // Dashboard.tsx already uses) — API reachability.
   const apiHealthQuery = useQuery({
     queryKey: ['settings-api-health'],
     queryFn: async () => {
@@ -693,17 +711,24 @@ function Settings() {
       <Card className="p-5">
         <SectionHeader icon={Cpu} title="AI Configuration" />
         <div className="mt-3">
-          <StatusRow label="AI Provider" tone="neutral" text="Ollama" />
-          <StatusRow label="Connection" tone="neutral" text="Unavailable" />
-          <StatusRow label="Model" tone="neutral" text="Awaiting backend integration" />
+          <StatusRow
+            label="AI Provider"
+            tone="neutral"
+            text={aiStatusQuery.isLoading ? 'Checking…' : aiStatusQuery.isError ? 'Unavailable' : PROVIDER_LABELS[aiStatusQuery.data!.provider] ?? aiStatusQuery.data!.provider}
+          />
+          <StatusRow
+            label="Configuration"
+            tone={aiStatusQuery.data?.configured ? 'success' : aiStatusQuery.isLoading ? 'neutral' : 'danger'}
+            text={aiStatusQuery.isLoading ? 'Checking…' : aiStatusQuery.data?.configured ? 'Configured' : 'Not configured'}
+          />
+          <StatusRow label="Model" tone="neutral" text={aiStatusQuery.isLoading ? '…' : aiStatusQuery.data?.model ?? 'Unavailable'} />
           <StatusRow label="AI Analysis" tone="success" text="Enabled" />
           <StatusRow label="Expert Review" tone="success" text="Enabled" />
         </div>
         <p className="mt-3 text-xs text-ink-muted">
-          Ollama runs entirely server-side (configured via OLLAMA_BASE_URL/OLLAMA_DEFAULT_MODEL) with no health or config endpoint
-          exposed to the frontend, so live connection status and the active model can&apos;t be verified from here — shown honestly as
-          unavailable rather than guessed. AI Analysis and Expert Review describe this deployment&apos;s built-in workflow
-          (POST /api/lead-analysis, plus the manual review step before a proposal is approved), not a live connection check.
+          Read live from the backend (GET /api/ai/status), which reports the provider and model it is configured with — without
+          calling the model, so checking this page costs no quota.
+          {aiStatusQuery.data?.reason && ` ${aiStatusQuery.data.reason}`}
         </p>
       </Card>
 

@@ -17,7 +17,7 @@ import { ApiError } from '../utils/ApiError.js';
  * {trigger_signal} built from the tender's own title/description — this
  * mapping is the only new logic in this file.
  */
-function toEmailContext(tender) {
+export function toEmailContext(tender) {
   const company = {
     name: tender.winning_company_name || tender.company_name || 'the winning bidder',
     sector: tender.category || 'General Procurement',

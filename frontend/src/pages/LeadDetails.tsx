@@ -24,6 +24,7 @@ import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import DecisionTrail from '../components/leads/DecisionTrail';
+import LeadRecommendations from '../components/leads/LeadRecommendations';
 import { fetchTenderById, fetchCustomerCheck, fetchHealthCheck, fetchProposals, createProposal, approveProposal } from '../services/tendersApi';
 import { formatDate, tenderTitleFrom, tenderLocation, tenderStatus } from '../utils/tenderFormatters';
 
@@ -117,11 +118,9 @@ interface TenderResponse {
 }
 
 // Real `tender_proposals` row shape (verified live — see
-// src/repositories/tenderProposalRepository.js). There is no structured
-// "recommended banking products" or "relationship strategy" field on this
-// table — those sections render "Awaiting backend integration." rather than
-// reusing the Health Check card's separate recommendation data, since this
-// phase is scoped to the proposal endpoint specifically.
+// src/repositories/tenderProposalRepository.js). Recommended banking
+// products and relationship strategy come from a separate endpoint
+// (GET /api/leads/:id/recommendations, see LeadRecommendations.tsx).
 interface Proposal {
   id: number;
   tender_id: string;
@@ -485,15 +484,7 @@ function ProposalCard({ tender }: { tender: Tender }) {
 
         {listQuery.isSuccess && (
           <>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Recommended Banking Products</p>
-              <p className="mt-1 text-sm text-ink-muted">Awaiting backend integration.</p>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Relationship Strategy</p>
-              <p className="mt-1 text-sm text-ink-muted">Awaiting backend integration.</p>
-            </div>
+            <LeadRecommendations tenderId={tender.tender_id} />
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Proposal Summary</p>
