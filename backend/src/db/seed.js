@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
@@ -12,11 +13,14 @@ const SEED_ROLES = [
   ['Relationship Manager', 'Manages leads, companies, and proposals'],
 ];
 
+// The admin row is always created (src/middleware/systemUser.js acts as
+// user id 1), but its password never lives in code: it comes from
+// ADMIN_PASSWORD. Without it the row gets a random, unknowable password, so
+// nobody can log in as admin until `npm run admin:set-password` is run.
 const DEFAULT_ADMIN = {
   firstName: 'System',
   lastName: 'Administrator',
-  email: 'admin@leadgen.local',
-  password: 'Admin@123',
+  email: process.env.ADMIN_EMAIL || 'admin@leadgen.local',
 };
 
 // Same dummy/demo dataset the original SQLite `initializeDatabase()` seeded
@@ -212,7 +216,11 @@ export async function seedAuthIfEmpty() {
   }
 
   const adminRole = await get('SELECT id FROM roles WHERE role_name = ?', ['Admin']);
-  const passwordHash = await bcrypt.hash(DEFAULT_ADMIN.password, SALT_ROUNDS);
+  const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(32).toString('hex');
+  if (!process.env.ADMIN_PASSWORD) {
+    console.warn('[DB Seed] ADMIN_PASSWORD not set — admin login is disabled until you run `npm run admin:set-password`.');
+  }
+  const passwordHash = await bcrypt.hash(adminPassword, SALT_ROUNDS);
 
   await run(
     `INSERT INTO users (first_name, last_name, email, phone, password_hash, role_id, status)
