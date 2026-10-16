@@ -119,6 +119,7 @@ async function generate(briefDate) {
   const client = createLlmClient();
   const started = Date.now();
   const { data, usage } = await client.chatWithMeta({
+    operation: 'daily_brief',
     system: SYSTEM_PROMPT,
     user: `Facts for ${briefDate}:\n${JSON.stringify(facts, null, 2)}`,
     schema: BRIEF_SCHEMA,
@@ -140,7 +141,7 @@ async function generate(briefDate) {
 
 /** Short, user-facing reason for a failed generation; the raw error goes to the server log. */
 function friendlyReason(message = '') {
-  if (/HTTP 429/.test(message)) return 'the Gemini quota is used up for now';
+  if (/quota exhausted|HTTP 429/i.test(message)) return 'the Gemini quota is used up for now';
   if (/HTTP 503/.test(message)) return 'Gemini is overloaded right now';
   if (/timed out/i.test(message)) return 'Gemini took too long to respond';
   if (/API key|GEMINI_API_KEY|OLLAMA_BASE_URL/.test(message)) return 'no AI provider is configured on the server';

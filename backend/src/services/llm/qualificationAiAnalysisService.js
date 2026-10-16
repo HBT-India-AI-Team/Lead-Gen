@@ -36,7 +36,7 @@ export class QualificationAiAnalysisService {
     }
 
     const { system, user } = buildQualificationAnalysisPrompt(evidence);
-    const parsed = await this.llmClient.chat({ system, user });
+    const parsed = await this.llmClient.chat({ system, user, operation: 'qualification_advisory' });
 
     return this.#validate(parsed);
   }

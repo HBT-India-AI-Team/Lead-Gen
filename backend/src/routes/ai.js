@@ -7,5 +7,6 @@ const router = Router();
 
 router.get('/brief', aiController.brief);
 router.get('/status', aiController.status);
+router.get('/usage', aiController.usage);
 
 export default router;

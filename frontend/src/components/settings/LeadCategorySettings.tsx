@@ -8,6 +8,7 @@ import StatusBadge from '../ui/StatusBadge';
 import DualRangeSlider from '../ui/DualRangeSlider';
 import ScoreThresholdSlider, { bandForValue } from '../ui/ScoreThresholdSlider';
 import { fetchTenders, fetchHealthCheck } from '../../services/tendersApi';
+import { fetchLeadCategorySettings, saveLeadCategorySettings } from '../../services/settingsApi';
 import { formatInrCompact, formatDate, tenderTitleFrom } from '../../utils/tenderFormatters';
 import { cn } from '../../utils/formatters';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -18,11 +19,36 @@ import {
   TENDER_VALUE_MAX,
   TENDER_VALUE_STEP,
   DEFAULT_CATEGORY_SETTINGS,
+  DEFAULT_SCORE_THRESHOLDS,
   isWipCategory,
   readLeadCategorySettings,
   writeLeadCategorySettings,
 } from '../../constants/leadCategorySettings';
 import type { AllCategorySettings, CategorySettings } from '../../constants/leadCategorySettings';
+
+// A lead_category_settings row as GET /api/settings/lead-categories returns it.
+interface ServerCategoryRow {
+  category_key: string;
+  tender_value_min: number | string;
+  tender_value_max: number | string;
+  decision_window_days: number;
+  score_thresholds: Partial<CategorySettings['scoreThresholds']> | null;
+}
+
+/** Overlays saved server rows onto the local/default settings, per category. */
+function mergeServerRows(base: AllCategorySettings, rows: ServerCategoryRow[]): AllCategorySettings {
+  const next = { ...base };
+  for (const row of rows) {
+    next[row.category_key] = {
+      ...DEFAULT_CATEGORY_SETTINGS,
+      tenderValueMin: Number(row.tender_value_min),
+      tenderValueMax: Number(row.tender_value_max),
+      decisionWindowDays: Number(row.decision_window_days),
+      scoreThresholds: { ...DEFAULT_SCORE_THRESHOLDS, ...(row.score_thresholds ?? {}) },
+    };
+  }
+  return next;
+}
 
 // Looked up by key (not array index) so the live-check panel's band colors
 // stay correct even if SCORE_DEFINITIONS' order ever changes.
@@ -130,6 +156,26 @@ function LeadCategorySettings({ category, pushToast }: Props) {
   const [saved, setSaved] = useState<AllCategorySettings>(() => readLeadCategorySettings());
   const [draft, setDraft] = useState<AllCategorySettings>(saved);
   const [isSaving, setIsSaving] = useState(false);
+  // Server copy (GET /api/settings/lead-categories) is the source of truth;
+  // the localStorage copy above is only the first paint and the fallback
+  // when the API can't be reached.
+  const [serverReachable, setServerReachable] = useState<boolean | null>(null);
+  const serverSettingsQuery = useQuery({
+    queryKey: ['lead-category-settings'],
+    queryFn: () => fetchLeadCategorySettings() as Promise<{ settings: ServerCategoryRow[] }>,
+    retry: 0,
+  });
+  const [hydratedFromServer, setHydratedFromServer] = useState(false);
+
+  if (!hydratedFromServer && (serverSettingsQuery.isSuccess || serverSettingsQuery.isError)) {
+    setHydratedFromServer(true);
+    setServerReachable(serverSettingsQuery.isSuccess);
+    if (serverSettingsQuery.isSuccess) {
+      const merged = mergeServerRows(saved, serverSettingsQuery.data.settings);
+      setSaved(merged);
+      setDraft(merged);
+    }
+  }
 
   // ---- Live company check — all four sliders can be checked against a
   // company's actual Probe42 profile (revenue, net profit, incorporation
@@ -189,15 +235,30 @@ function LeadCategorySettings({ category, pushToast }: Props) {
     }));
   }
 
-  function saveCurrent() {
+  async function saveCurrent() {
     setIsSaving(true);
+    const next = { ...saved, [category]: draft[category] };
     try {
-      const next = { ...draft };
+      await saveLeadCategorySettings(category, draft[category]);
+      setServerReachable(true);
       writeLeadCategorySettings(next);
       setSaved(next);
-      pushToast('success', `${category} settings saved to this browser.`);
-    } catch {
-      pushToast('error', 'Unable to save settings');
+      pushToast('success', `${category} settings saved for everyone.`);
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      if (status && status < 500) {
+        // The server rejected the values (e.g. min > max) — don't save them anywhere.
+        pushToast('error', error instanceof Error ? error.message : 'Unable to save settings');
+      } else {
+        setServerReachable(false);
+        try {
+          writeLeadCategorySettings(next);
+          setSaved(next);
+          pushToast('info', `Server unreachable — ${category} settings saved in this browser only.`);
+        } catch {
+          pushToast('error', 'Unable to save settings');
+        }
+      }
     } finally {
       setIsSaving(false);
     }
@@ -530,7 +591,11 @@ function LeadCategorySettings({ category, pushToast }: Props) {
           Cancel
         </Button>
         <span className="text-xs text-ink-muted">
-          Saved locally for <strong>{category}</strong> only.
+          {serverReachable === false ? (
+            <>Server unreachable — <strong>{category}</strong> settings are kept in this browser only.</>
+          ) : (
+            <>Saved on the server for <strong>{category}</strong>, shared by everyone.</>
+          )}
         </span>
       </div>
     </Card>

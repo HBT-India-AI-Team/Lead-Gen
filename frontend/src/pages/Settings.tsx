@@ -25,6 +25,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import StatusBadge from '../components/ui/StatusBadge';
 import LeadCategorySettings from '../components/settings/LeadCategorySettings';
+import AiUsagePanel from '../components/settings/AiUsagePanel';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import { updateProfile as updateProfileRequest, changePassword as changePasswordRequest } from '../services/userApi';
 import { fetchTenders } from '../services/tendersApi';
@@ -730,6 +731,7 @@ function Settings() {
           calling the model, so checking this page costs no quota.
           {aiStatusQuery.data?.reason && ` ${aiStatusQuery.data.reason}`}
         </p>
+        <AiUsagePanel />
       </Card>
 
       {/* 7. Security */}

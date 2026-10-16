@@ -31,6 +31,8 @@ export async function runLeadIntelligence() {
 
   let analyzed = 0;
   let failed = 0;
+  let deferred = 0;
+  let stoppedForQuota = false;
   const usage = { prompt: 0, completion: 0, total: 0 };
 
   for (const record of records) {
@@ -59,6 +61,20 @@ export async function runLeadIntelligence() {
       console.log(`${LOG_PREFIX} Tender extraction ${record.tender_extraction_id}: scored ${fields.opportunityScore} (${fields.leadPriority}).`);
 
     } catch (error) {
+      // Quota / overload / timeout says nothing about this tender: leave it
+      // pending for the next run instead of recording a permanent failure,
+      // and stop the batch outright once the quota is gone.
+      if (error.code === 'LLM_QUOTA_EXHAUSTED') {
+        stoppedForQuota = true;
+        console.warn(`${LOG_PREFIX} Model quota exhausted — stopping; remaining tenders stay pending. ${error.message}`);
+        break;
+      }
+      if (error.transient) {
+        deferred++;
+        console.warn(`${LOG_PREFIX} Tender extraction ${record.tender_extraction_id}: temporary model error, left pending — ${error.message}`);
+        continue;
+      }
+
       failed++;
       console.error(`${LOG_PREFIX} Tender extraction ${record.tender_extraction_id}: analysis failed — ${error.message}`);
 
@@ -75,10 +91,11 @@ export async function runLeadIntelligence() {
     }
   }
 
-  console.log(`${LOG_PREFIX} Batch complete: ${analyzed} analyzed, ${failed} failed, out of ${records.length} total.`);
+  const pending = records.length - analyzed - failed;
+  console.log(`${LOG_PREFIX} Batch ${stoppedForQuota ? 'stopped (quota)' : 'complete'}: ${analyzed} analyzed, ${failed} failed, ${pending} left pending (${deferred} after a temporary error), out of ${records.length} total.`);
   console.log(`${LOG_PREFIX} Token usage — prompt: ${usage.prompt}, completion: ${usage.completion}, total: ${usage.total}.`);
 
-  return { analyzed, failed, total: records.length };
+  return { analyzed, failed, pending, stoppedForQuota, total: records.length };
 }
 
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === __filename;

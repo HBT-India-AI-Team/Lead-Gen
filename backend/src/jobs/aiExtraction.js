@@ -30,6 +30,8 @@ export async function runAiExtraction() {
 
   let extracted = 0;
   let failed = 0;
+  let deferred = 0;
+  let stoppedForQuota = false;
   const usage = { prompt: 0, completion: 0, total: 0 };
 
   for (const document of documents) {
@@ -55,6 +57,20 @@ export async function runAiExtraction() {
       console.log(`${LOG_PREFIX} Document ${document.id}: extracted "${fields.tenderTitle ?? 'untitled'}".`);
 
     } catch (error) {
+      // Quota / overload / timeout says nothing about this document: leave
+      // it pending for the next run instead of recording a permanent
+      // failure, and stop the batch outright once the quota is gone.
+      if (error.code === 'LLM_QUOTA_EXHAUSTED') {
+        stoppedForQuota = true;
+        console.warn(`${LOG_PREFIX} Model quota exhausted — stopping; remaining documents stay pending. ${error.message}`);
+        break;
+      }
+      if (error.transient) {
+        deferred++;
+        console.warn(`${LOG_PREFIX} Document ${document.id}: temporary model error, left pending — ${error.message}`);
+        continue;
+      }
+
       failed++;
       console.error(`${LOG_PREFIX} Document ${document.id}: extraction failed — ${error.message}`);
 
@@ -70,10 +86,11 @@ export async function runAiExtraction() {
     }
   }
 
-  console.log(`${LOG_PREFIX} Batch complete: ${extracted} extracted, ${failed} failed, out of ${documents.length} total.`);
+  const pending = documents.length - extracted - failed;
+  console.log(`${LOG_PREFIX} Batch ${stoppedForQuota ? 'stopped (quota)' : 'complete'}: ${extracted} extracted, ${failed} failed, ${pending} left pending (${deferred} after a temporary error), out of ${documents.length} total.`);
   console.log(`${LOG_PREFIX} Token usage — prompt: ${usage.prompt}, completion: ${usage.completion}, total: ${usage.total}.`);
 
-  return { extracted, failed, total: documents.length };
+  return { extracted, failed, pending, stoppedForQuota, total: documents.length };
 }
 
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === __filename;

@@ -67,6 +67,7 @@ function buildProfilePrompt(metadata) {
 
 async function profileRecord(metadata, llmClient) {
   const { data, payload, usage } = await llmClient.chatWithMeta({
+    operation: 'mca_profile',
     system: SYSTEM_PROMPT,
     user: buildProfilePrompt(metadata),
     schema: LEAD_PROFILE_SCHEMA.schema,
@@ -92,6 +93,7 @@ async function processDocument(doc, llmClient, usage) {
     console.log(`[MCA Profile] Document ${doc.id}: profiled, lead_score=${parsed.lead_score}${parsed.data_sparse ? ' (sparse data)' : ''}.`);
     return true;
   } catch (error) {
+    if (error.code === 'LLM_QUOTA_EXHAUSTED') throw error; // stop the batch; see runMcaProfile
     console.error(`[MCA Profile] Document ${doc.id}: failed to profile —`, error.message);
     return false;
   }
@@ -123,13 +125,21 @@ export async function runMcaProfile() {
   let profiled = 0;
   let failed = 0;
 
+  let stoppedForQuota = false;
   for (const doc of pendingDocs) {
-    const ok = await processDocument(doc, llmClient, usage);
-    if (ok) profiled++;
-    else failed++;
+    try {
+      const ok = await processDocument(doc, llmClient, usage);
+      if (ok) profiled++;
+      else failed++;
+    } catch (error) {
+      // Unprofiled documents are simply picked up again next run.
+      stoppedForQuota = true;
+      console.warn(`[MCA Profile] Model quota exhausted — stopping; remaining documents stay pending. ${error.message}`);
+      break;
+    }
   }
 
-  console.log(`[MCA Profile] Batch complete: ${profiled} profiled, ${failed} failed, out of ${pendingDocs.length} candidate(s).`);
+  console.log(`[MCA Profile] Batch ${stoppedForQuota ? 'stopped (quota)' : 'complete'}: ${profiled} profiled, ${failed} failed, out of ${pendingDocs.length} candidate(s).`);
   console.log(`[MCA Profile] Token usage — prompt: ${usage.prompt}, completion: ${usage.completion}, total: ${usage.total}.`);
 }
 
