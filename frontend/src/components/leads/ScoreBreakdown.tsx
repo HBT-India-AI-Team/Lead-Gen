@@ -26,6 +26,23 @@ export interface QualificationFactors {
 
 type FactorKey = keyof QualificationFactors;
 
+// `tenders.qualification_reason.scoring` — which scorer produced the
+// authoritative score (backend/src/services/ml/mlScoringService.js): an
+// admin-approved model for the lead's segment, or the rules engine.
+export interface QualificationScoring {
+  source: 'model' | 'rules';
+  score: number;
+  probability?: number | null;
+  modelVersion?: number | null;
+  segmentKey?: string | null;
+  resolvedVia?: string;
+  label?: string;
+  fallbackReason?: string | null;
+  deterministicScore?: number;
+  contributions?: { feature: string; label: string; value: number; contribution: number }[];
+  outOfDistribution?: string[];
+}
+
 // Max points per factor — mirrors backend/src/services/scoring/
 // qualificationRules.js (the ten weights sum to exactly 100). Kept here
 // only so each row can show "earned / possible"; the earned points always
@@ -100,17 +117,85 @@ function ScoreBands({ score }: { score: number }) {
   );
 }
 
+/** The model's strongest drivers for this one lead (weight × standardized value, on the log-odds scale). */
+function ModelContribution({ scoring }: { scoring: QualificationScoring }) {
+  const contributions = scoring.contributions ?? [];
+  const max = Math.max(0, ...contributions.map(({ contribution }) => Math.abs(contribution)));
+  return (
+    <section aria-label="Model score">
+      <h4 className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">Scored by {scoring.label}</h4>
+      <p className="mt-1 text-xs text-ink-soft">
+        {scoring.probability != null && <>Approval probability {Math.round(scoring.probability * 100)}% → score {scoring.score}. </>}
+        {scoring.deterministicScore != null && <>The rules engine would give {scoring.deterministicScore}.</>}
+      </p>
+      {contributions.length > 0 && (
+        <ul className="mt-2 grid gap-1.5">
+          {contributions.map(({ feature, label, contribution }) => {
+            const width = max > 0 ? Math.min(50, (Math.abs(contribution) / max) * 50) : 0;
+            return (
+              <li key={feature} className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto] items-center gap-3 text-xs">
+                <span className="truncate text-ink-soft" title={label}>{label}</span>
+                <span className="relative block h-1.5 rounded-full bg-surface-sunken" aria-hidden="true">
+                  <span className="absolute inset-y-0 left-1/2 w-px bg-hairline-strong" />
+                  <span
+                    className={`absolute inset-y-0 rounded-full ${contribution >= 0 ? 'bg-success' : 'bg-danger'}`}
+                    style={contribution >= 0 ? { left: '50%', width: `${width}%` } : { right: '50%', width: `${width}%` }}
+                  />
+                </span>
+                <span className="tabular w-12 text-right text-ink">
+                  {contribution >= 0 ? '+' : ''}
+                  {contribution.toFixed(2)}
+                  <span className="sr-only">{contribution >= 0 ? ' toward proceed' : ' toward reject'}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 /**
  * The real per-factor breakdown behind a qualification score: all ten
  * factors, grouped by where the data came from, each with the points it
  * actually earned out of its maximum. A factor missing from `factors`
  * reads as "Not available" with 0 points, same as one the scorer marked
- * unmatched. Visibility is controlled by the parent.
+ * unmatched. When a model produced the score (`scoring.source === 'model'`)
+ * its drivers lead and the rules factors follow as the reference.
+ * Visibility is controlled by the parent.
  */
-export function ScoreBreakdownPanel({ factors, score }: { factors: QualificationFactors | null | undefined; score?: number | null }) {
+export function ScoreBreakdownPanel({
+  factors,
+  score,
+  scoring,
+}: {
+  factors: QualificationFactors | null | undefined;
+  score?: number | null;
+  scoring?: QualificationScoring | null;
+}) {
+  const modelScoring = scoring?.source === 'model' ? scoring : null;
+  const outOfDistribution = scoring?.source === 'rules' ? scoring.outOfDistribution ?? [] : [];
   return (
     <div className="grid gap-4 rounded-lg border border-hairline bg-surface-muted p-3">
       {score != null && <ScoreBands score={score} />}
+
+      {modelScoring && <ModelContribution scoring={modelScoring} />}
+
+      {outOfDistribution.length > 0 && (
+        <div className="rounded-md border border-dashed border-hairline-strong p-2.5 text-xs text-ink-soft">
+          <p className="font-semibold text-ink">Rules engine used: {scoring?.fallbackReason}</p>
+          <ul className="mt-1 list-disc pl-4 text-ink-muted">
+            {outOfDistribution.map((reason) => <li key={reason}>{reason}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {modelScoring && (
+        <p className="-mb-2 text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+          Rules engine factors (reference){modelScoring.deterministicScore != null ? ` — ${modelScoring.deterministicScore}/100` : ''}
+        </p>
+      )}
 
       {FACTOR_GROUPS.map((group) => (
         <section key={group.source} aria-label={`${group.source} factors`}>

@@ -7,6 +7,7 @@ import {
   Mail,
   BarChart3,
   Settings as SettingsIcon,
+  BrainCircuit,
 } from 'lucide-react';
 import { cn } from '../../utils/formatters';
 
@@ -25,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/human-review', label: 'Expert Review', icon: ClipboardCheck },
   { path: '/communication', label: 'Communication', icon: Mail },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { path: '/model-maintenance', label: 'Model Maintenance', icon: BrainCircuit },
   { path: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 

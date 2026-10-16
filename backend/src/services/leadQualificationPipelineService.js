@@ -10,6 +10,7 @@ import {
 import { collectQualificationEvidence } from './qualification/evidenceCollectorService.js';
 import { QualificationAiAnalysisService } from './llm/qualificationAiAnalysisService.js';
 import { recordDecisionEvent } from './decisionTrailService.js';
+import { scoreLead } from './ml/mlScoringService.js';
 
 // PHASE 1 Lead Qualification workflow entry point. A "lead" is a `tenders`
 // row (see src/db/migrations/addLeadQualificationSchema.js's rationale);
@@ -17,13 +18,16 @@ import { recordDecisionEvent } from './decisionTrailService.js';
 // automatically when a new tender is inserted — no queue/worker exists yet,
 // so for now it's only invoked directly (POST /api/leads/:id/qualify).
 //
-// PHASE 2 addition: after the deterministic score below, real evidence is
-// collected and sent to the LLM for an advisory AI analysis (reasoning,
-// positive/risk signals, missing evidence). The deterministic score/
-// lead_status/pipeline_status remain 100% authoritative and are computed
-// first, independent of the LLM — a failed/unreachable LLM call never
-// changes them, only leaves qualification_reason.aiAnalysis marked
+// PHASE 2 addition: after the score below, real evidence is collected and
+// sent to the LLM for an advisory AI analysis (reasoning, positive/risk
+// signals, missing evidence). The score/lead_status/pipeline_status are
+// computed first, independent of the LLM — a failed/unreachable LLM call
+// never changes them, only leaves qualification_reason.aiAnalysis marked
 // unavailable. See qualificationAiAnalysisService.js's header for why.
+//
+// The score itself comes from the Model Maintenance Agent's scoring path:
+// an admin-approved ML model for the lead's segment when one applies,
+// otherwise the deterministic rules engine. Both scores are persisted.
 //
 // Implements the explicit transition sequence from the spec as real,
 // separately persisted writes (not just a single final UPDATE), so the row
@@ -49,6 +53,24 @@ async function runAiAnalysis(tender) {
   } catch (error) {
     return { aiAnalysis: { status: 'AI_ANALYSIS_UNAVAILABLE', error: error.message }, evidence };
   }
+}
+
+/**
+ * The lead's last successful qualification before this one, if any — so a
+ * score that moved because a different (or newly approved) model scored it
+ * is visible as a change in the decision trail.
+ */
+function previousQualification(tender) {
+  if (tender.qualification_score == null) return null;
+  let reason = tender.qualification_reason;
+  if (typeof reason === 'string') {
+    try {
+      reason = JSON.parse(reason);
+    } catch {
+      reason = null;
+    }
+  }
+  return { score: tender.qualification_score, scoredBy: reason?.scoring?.label ?? 'Rules engine' };
 }
 
 /**
@@ -107,7 +129,14 @@ export async function qualifyLead(tenderId) {
 
   try {
     const probe42Profile = await loadProbe42Profile(tender);
-    const { score, factors, reasons } = computeQualificationScore(tender, probe42Profile);
+    const { score: deterministicScore, factors, reasons } = computeQualificationScore(tender, probe42Profile);
+
+    // The authoritative score: the segment's active ML model when one
+    // resolves and the lead is within its training data, otherwise the
+    // rules engine's score above (see services/ml/mlScoringService.js).
+    // A model only ever gets here after an admin approved its promotion.
+    const scoring = await scoreLead({ tender, probe42Profile, deterministicScore });
+    const { score } = scoring;
     const leadStatus = resolveLeadStatusFromScore(score);
     const pipelineStatus = resolvePipelineStatusFromLeadStatus(leadStatus);
 
@@ -132,6 +161,8 @@ export async function qualifyLead(tenderId) {
       reason: {
         factors,
         reasons,
+        deterministicScore,
+        scoring,
         tenderSignal: tenderSignal
           ? {
               available: true,
@@ -148,13 +179,26 @@ export async function qualifyLead(tenderId) {
       },
     });
 
+    const previous = previousQualification(tender);
     await recordDecisionEvent({
       tenderId,
       eventType: 'QUALIFIED',
-      actorType: 'RULES',
-      actor: 'Rules engine',
+      actorType: scoring.source === 'model' ? 'MODEL' : 'RULES',
+      actor: scoring.label,
       decision: leadStatus,
-      details: { score, pipelineStatus },
+      details: {
+        score,
+        pipelineStatus,
+        scoreSource: scoring.source,
+        deterministicScore,
+        modelId: scoring.modelId,
+        modelVersion: scoring.modelVersion,
+        segmentKey: scoring.segmentKey,
+        resolvedVia: scoring.resolvedVia,
+        fallbackReason: scoring.fallbackReason,
+        previousScore: previous?.score ?? null,
+        previousScoredBy: previous?.scoredBy ?? null,
+      },
     });
     await recordDecisionEvent({
       tenderId,

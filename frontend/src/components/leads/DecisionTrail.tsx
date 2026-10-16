@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Bot, Loader2, Scale, Settings2, UserCheck } from 'lucide-react';
+import { AlertTriangle, Bot, BrainCircuit, Loader2, Scale, Settings2, UserCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Card from '../ui/Card';
 import StatusBadge from '../ui/StatusBadge';
@@ -15,7 +15,7 @@ import { fetchLeadDecisionTrail } from '../../services/leadsApi';
 interface DecisionEvent {
   id: number | string;
   eventType: string;
-  actorType: 'RULES' | 'AI' | 'HUMAN' | 'SYSTEM';
+  actorType: 'RULES' | 'MODEL' | 'AI' | 'HUMAN' | 'SYSTEM';
   actor: string | null;
   decision: string | null;
   comment: string | null;
@@ -42,6 +42,7 @@ const EVENT_TITLE: Record<string, string> = {
 
 const ACTOR: Record<DecisionEvent['actorType'], { icon: LucideIcon; label: string; className: string }> = {
   RULES: { icon: Scale, label: 'Rules engine', className: 'bg-primary-tint text-primary' },
+  MODEL: { icon: BrainCircuit, label: 'Qualification model', className: 'bg-primary text-ink-inverse' },
   AI: { icon: Bot, label: 'AI', className: 'bg-accent-soft text-ink' },
   HUMAN: { icon: UserCheck, label: 'Human reviewer', className: 'bg-success-bg text-success' },
   SYSTEM: { icon: Settings2, label: 'System', className: 'bg-surface-sunken text-ink-soft' },
@@ -73,6 +74,14 @@ function detailSummary(event: DecisionEvent): string | null {
   const d = event.details ?? {};
   const parts: string[] = [];
   if (typeof d.score === 'number') parts.push(`score ${d.score}`);
+  if (d.scoreSource === 'model' && typeof d.deterministicScore === 'number') parts.push(`rules engine ${d.deterministicScore}`);
+  if (typeof d.previousScore === 'number' && d.previousScore !== d.score) {
+    parts.push(`was ${d.previousScore}${typeof d.previousScoredBy === 'string' ? ` by ${d.previousScoredBy}` : ''}`);
+  }
+  // Only worth showing when a model existed but wasn't used for this lead.
+  if (d.scoreSource === 'rules' && typeof d.fallbackReason === 'string' && !d.fallbackReason.startsWith('No active model')) {
+    parts.push(d.fallbackReason);
+  }
   if (typeof d.confidence === 'number') parts.push(`confidence ${d.confidence}`);
   if (typeof d.proposalScore === 'number') parts.push(`proposal score ${d.proposalScore}`);
   if (typeof d.recommendedProduct === 'string') parts.push(d.recommendedProduct);

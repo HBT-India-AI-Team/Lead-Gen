@@ -17,7 +17,7 @@ import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import { ScoreBreakdownToggle, ScoreBreakdownPanel } from '../components/leads/ScoreBreakdown';
-import type { QualificationFactors } from '../components/leads/ScoreBreakdown';
+import type { QualificationFactors, QualificationScoring } from '../components/leads/ScoreBreakdown';
 import DecisionTrail from '../components/leads/DecisionTrail';
 import { fetchLeadById, fetchLeadCommunication, fetchLeads, prepareLeadCommunication, reviewLeadCommunication } from '../services/leadsApi';
 import { formatDate, tenderTitleFrom, tenderLocation } from '../utils/tenderFormatters';
@@ -48,6 +48,7 @@ interface Lead {
       reasoning?: string;
     };
     factors?: QualificationFactors;
+    scoring?: QualificationScoring;
   } | null;
 }
 
@@ -422,7 +423,7 @@ function CommunicationPanel({ tenderId }: { tenderId: string }) {
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Qualification */}
         <div className="rounded-xl border border-hairline bg-surface-muted p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Qualification (Deterministic — Authoritative)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Qualification — scored by {lead.qualification_reason?.scoring?.label ?? 'Rules engine'}</p>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Qualification Score</p>
@@ -440,12 +441,12 @@ function CommunicationPanel({ tenderId }: { tenderId: string }) {
           </div>
           {lead.qualification_score != null && scoreBreakdownExpanded && (
             <div className="mt-3">
-              <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} score={lead.qualification_score} />
+              <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} score={lead.qualification_score} scoring={lead.qualification_reason?.scoring} />
             </div>
           )}
           {aiAnalysis && aiAnalysis.status === 'AVAILABLE' && (
             <div className="mt-3 rounded-lg border border-hairline bg-surface p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">AI Advisory Analysis (Ollama — not the authoritative score)</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">AI Advisory Analysis (not the authoritative score)</p>
               <p className="mt-1.5 text-xs text-ink-soft">Advisory score {aiAnalysis.score} · {aiAnalysis.classification}</p>
             </div>
           )}

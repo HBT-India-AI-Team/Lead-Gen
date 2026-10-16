@@ -8,6 +8,7 @@ import Communication from '../pages/Communication';
 import LeadPipeline from '../pages/LeadPipeline';
 import Analytics from '../pages/Analytics';
 import Settings from '../pages/Settings';
+import ModelMaintenance from '../pages/ModelMaintenance';
 import { readLandingPagePath } from '../constants/settingsPreferences';
 
 import B2BLeadWorkspaceDashboard from '../pages/B2BLeadWorkspaceDashboard';
@@ -28,6 +29,7 @@ function AppRouter() {
           <Route path="communication" element={<Communication />} />
           <Route path="lead-pipeline" element={<LeadPipeline />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="model-maintenance" element={<ModelMaintenance />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

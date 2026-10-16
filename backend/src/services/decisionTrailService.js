@@ -59,7 +59,8 @@ function deriveEvents(tender, proposal) {
   const reason = parseJson(tender.qualification_reason);
 
   if (tender.qualification_completed_at && tender.qualification_score != null) {
-    events.push(derivedEvent('QUALIFIED', 'RULES', 'Rules engine', tender.lead_status, tender.qualification_completed_at, {
+    const scoredByModel = reason?.scoring?.source === 'model';
+    events.push(derivedEvent('QUALIFIED', scoredByModel ? 'MODEL' : 'RULES', reason?.scoring?.label ?? 'Rules engine', tender.lead_status, tender.qualification_completed_at, {
       details: { score: tender.qualification_score },
     }));
 

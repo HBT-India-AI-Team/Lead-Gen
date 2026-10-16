@@ -15,7 +15,7 @@ import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import { ScoreBreakdownToggle, ScoreBreakdownPanel } from '../components/leads/ScoreBreakdown';
-import type { QualificationFactors } from '../components/leads/ScoreBreakdown';
+import type { QualificationFactors, QualificationScoring } from '../components/leads/ScoreBreakdown';
 import AiAdvisoryEvidence from '../components/leads/AiAdvisoryEvidence';
 import type { QualificationAiAnalysis, QualificationEvidenceSnapshot } from '../components/leads/AiAdvisoryEvidence';
 import DecisionTrail from '../components/leads/DecisionTrail';
@@ -63,6 +63,7 @@ interface Lead {
     aiAnalysis?: QualificationAiAnalysis;
     evidence?: QualificationEvidenceSnapshot | null;
     factors?: QualificationFactors;
+    scoring?: QualificationScoring;
   } | null;
 }
 
@@ -306,7 +307,7 @@ function ProposalReviewPanel({ lead, tenderId }: { lead: Lead; tenderId: string 
           it as a subordinate annotation — never a sibling card of equal
           weight. Both honesty labels are preserved verbatim. */}
       <Card accent className="p-5">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Qualification (Deterministic — Authoritative)</h3>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Qualification — scored by {lead.qualification_reason?.scoring?.label ?? 'Rules engine'}</h3>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Qualification Score</p>
@@ -331,7 +332,7 @@ function ProposalReviewPanel({ lead, tenderId }: { lead: Lead; tenderId: string 
 
         {lead.qualification_score != null && scoreBreakdownExpanded && (
           <div className="mt-3">
-            <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} score={lead.qualification_score} />
+            <ScoreBreakdownPanel factors={lead.qualification_reason?.factors} score={lead.qualification_score} scoring={lead.qualification_reason?.scoring} />
           </div>
         )}
 
