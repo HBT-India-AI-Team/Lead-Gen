@@ -11,7 +11,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_NAME = process.env.DB_NAME || 'sbi_leadgen';
+const DB_NAME = process.env.DB_NAME || 'leadgen';
 
 const baseConfig = {
   host: process.env.DB_HOST || 'localhost',

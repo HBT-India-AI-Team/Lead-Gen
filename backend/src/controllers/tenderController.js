@@ -1,5 +1,5 @@
 import * as tenderService from '../services/tenderService.js';
-import * as sbiCustomerCheckService from '../services/sbiCustomerCheckService.js';
+import * as customerCheckService from '../services/customerCheckService.js';
 import * as healthCheckService from '../services/healthCheckService.js';
 
 export async function list(req, res, next) {
@@ -93,11 +93,11 @@ export async function getById(req, res, next) {
   }
 }
 
-export async function sbiCheck(req, res, next) {
+export async function customerCheck(req, res, next) {
   try {
     const tender = await tenderService.getTenderById(req.params.tenderId);
     const companyChecked = tender.winning_company_name || tender.company_name;
-    const { isExistingCustomer, matchedCustomer } = await sbiCustomerCheckService.checkSbiCustomer(companyChecked);
+    const { isExistingCustomer, matchedCustomer } = await customerCheckService.checkExistingCustomer(companyChecked);
 
     return res.status(200).json({
       tenderId: tender.tender_id,

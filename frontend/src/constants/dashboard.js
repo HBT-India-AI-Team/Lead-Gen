@@ -13,7 +13,14 @@ import {
 } from 'react-icons/fi';
 import { RiGovernmentLine } from 'react-icons/ri';
 
-export const BACKEND_URL = window.BACKEND_URL || 'http://localhost:5000';
+// Resolution order: a window.BACKEND_URL set by the host page (lets a
+// deployed build be repointed without rebuilding), then VITE_BACKEND_URL
+// baked in at build time (set in .env.production for Firebase Hosting),
+// then the local dev server.
+export const BACKEND_URL =
+  window.BACKEND_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
+  'http://localhost:5000';
 
 export const SECTORS = ['Agriculture', 'SaaS', 'Fintech', 'Logistics', 'Healthcare'];
 

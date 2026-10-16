@@ -12,7 +12,7 @@ router.get('/lead-categories', tenderController.leadCategories);
 router.get('/states', tenderController.states);
 router.get('/districts', tenderController.districts);
 router.get('/:tenderId', tenderController.getById);
-router.get('/:tenderId/sbi-check', tenderController.sbiCheck);
+router.get('/:tenderId/customer-check', tenderController.customerCheck);
 router.get('/:tenderId/health-check', tenderController.healthCheck);
 
 export default router;
