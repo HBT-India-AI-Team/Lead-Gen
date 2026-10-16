@@ -46,6 +46,7 @@ function buildPrompt(cleanedText) {
  */
 export async function extractTenderFields(cleanedText, { llmClient = createLlmClient() } = {}) {
   const { data, payload, usage } = await llmClient.chatWithMeta({
+    operation: 'tender_extraction',
     system: SYSTEM_PROMPT,
     user: buildPrompt(cleanedText),
     schema: TENDER_EXTRACTION_SCHEMA.schema,

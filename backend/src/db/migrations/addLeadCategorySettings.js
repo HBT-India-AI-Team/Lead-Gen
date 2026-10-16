@@ -4,12 +4,9 @@ import { exec } from '../../config/database.js';
 // the Settings → Lead Management tabbed UI (frontend/src/components/settings/
 // LeadCategorySettings.tsx).
 //
-// NOT YET WIRED: this migration is intentionally not imported/run from
-// src/server.js yet, and the matching route (src/routes/settings.js) is not
-// mounted. The frontend persists these settings to localStorage and says so
-// honestly. Activating the backend is a deliberate two-line change (see the
-// TODO block at the bottom of src/routes/settings.js) — until then nothing
-// here touches MySQL, so no half-real "saved to DB" claim is made in the UI.
+// Run at server boot (src/server.js). The matching route is
+// src/routes/settings.js, mounted at /api/settings. The frontend keeps a
+// localStorage copy only as a fallback for when the API is unreachable.
 //
 // One row per lead category. category_key stores the exact category string
 // from the frontend's LEAD_CATEGORY_OPTIONS single source of truth (e.g.

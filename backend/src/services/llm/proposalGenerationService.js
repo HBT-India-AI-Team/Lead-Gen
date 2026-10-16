@@ -40,7 +40,7 @@ export class ProposalGenerationService {
     }
 
     const { system, user } = buildProposalPrompt(evidence);
-    const parsed = await this.llmClient.chat({ system, user });
+    const parsed = await this.llmClient.chat({ system, user, operation: 'proposal' });
 
     return this.#validate(parsed);
   }

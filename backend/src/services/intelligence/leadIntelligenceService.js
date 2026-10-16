@@ -79,6 +79,7 @@ function buildPrompt(record) {
  */
 export async function analyzeTender(record, { llmClient = createLlmClient() } = {}) {
   const { data, payload, usage } = await llmClient.chatWithMeta({
+    operation: 'lead_intelligence',
     system: SYSTEM_PROMPT,
     user: buildPrompt(record),
     schema: LEAD_INTELLIGENCE_SCHEMA.schema,

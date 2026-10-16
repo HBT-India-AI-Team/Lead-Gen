@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { AlertTriangle, BarChart3, ChevronDown, ClipboardList, Inbox, Loader2, PieChart, SearchX } from 'lucide-react';
 import Card from '../components/ui/Card';
+import PipelineDistribution from '../components/analytics/PipelineDistribution';
 import Button from '../components/ui/Button';
 import SearchBox from '../components/ui/SearchBox';
 import Select from '../components/ui/Select';
@@ -240,25 +241,6 @@ function KpiCard({ label, value, loading }: { label: string; value: string; load
       ) : (
         <p className="tabular mt-2 text-2xl font-bold text-ink">{value}</p>
       )}
-    </Card>
-  );
-}
-
-// Compact, clearly-marked placeholder — same treatment as Dashboard's
-// "Today's AI Brief" empty state (dashed border, muted badge) — so a
-// one-sentence "not implemented yet" explanation doesn't render at the same
-// visual weight as a real, working chart like Tender Distribution above it.
-function UnavailableSection({ title, reason }: { title: string; reason: string }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">{title}</h3>
-        <StatusBadge tone="neutral" className="ml-auto">Not connected</StatusBadge>
-      </div>
-      <div className="mt-3 flex items-start gap-3 rounded-lg border border-dashed border-hairline-strong bg-surface-muted p-3">
-        <Inbox className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" strokeWidth={2} />
-        <p className="text-xs text-ink-muted">{reason}</p>
-      </div>
     </Card>
   );
 }
@@ -629,20 +611,10 @@ function Analytics() {
             )}
           </Card>
 
-          {/* Lead Quality Distribution + Proposal Pipeline — both compact
-              placeholders side by side, deliberately smaller than the real
-              Tender Distribution chart above so "not implemented yet" text
-              doesn't compete with working content for attention. */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <UnavailableSection
-              title="Lead Quality Distribution"
-              reason="Lead scores (HOT/WARM/QUALIFIED/LOW PRIORITY) are computed on demand per tender by the Health Check endpoint and are never persisted, so there is no bulk source to aggregate across all tenders yet."
-            />
-            <UnavailableSection
-              title="Proposal Pipeline"
-              reason="The proposals endpoint only supports looking up a single tender's proposals at a time — there is no endpoint to list or count proposals across all tenders yet."
-            />
-          </div>
+          {/* Lead Quality Distribution + Proposal Pipeline — from the
+              persisted qualification outcomes and proposal statuses
+              (GET /api/leads/pipeline-summary). */}
+          <PipelineDistribution />
 
           {/* Opportunity Summary */}
           <Card className="p-5">

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { recordLlmCall } from './llmTelemetry.js';
 
 // Generic, reusable HTTP client for Ollama's /api/chat endpoint. This
 // file knows nothing about LeadAnalysis, prompts, or banking — it only
@@ -80,7 +81,7 @@ export class OllamaClient {
    * given, is passed as Ollama's structured-output `format`; format 'text'
    * returns the reply as a plain string instead of parsed JSON.
    */
-  async chatWithMeta({ system, user, model = this.model, format = 'json', schema, temperature, options = {} } = {}) {
+  async chatWithMeta({ system, user, model = this.model, format = 'json', schema, temperature, options = {}, operation = 'chat' } = {}) {
     if (!user) {
       throw new Error('OllamaClient.chat() requires a "user" message.');
     }
@@ -90,9 +91,11 @@ export class OllamaClient {
     messages.push({ role: 'user', content: user });
 
     const totalAttempts = this.retries + 1;
+    const started = Date.now();
     let lastError;
+    let attempt = 1;
 
-    for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+    for (; attempt <= totalAttempts; attempt++) {
       try {
         const response = await this.http.post('/api/chat', {
           model,
@@ -103,7 +106,7 @@ export class OllamaClient {
         });
 
         const payload = response.data;
-        return {
+        const result = {
           data: format === 'json' ? this.#parseJsonContent(payload) : this.#textContent(payload),
           payload,
           usage: {
@@ -112,20 +115,27 @@ export class OllamaClient {
             total: (payload.prompt_eval_count || 0) + (payload.eval_count || 0)
           }
         };
+        recordLlmCall({ provider: this.provider, model, operation, ok: true, latencyMs: Date.now() - started, attempts: attempt, usage: result.usage });
+        return result;
       } catch (error) {
         lastError = this.#normalizeError(error);
 
         const isLastAttempt = attempt === totalAttempts;
-        if (isLastAttempt || !this.#isRetriable(error)) {
-          throw lastError;
-        }
+        if (isLastAttempt || !this.#isRetriable(error)) break;
 
         await sleep(this.retryDelayMs * attempt);
       }
     }
 
-    // Unreachable (the loop always throws or returns), but keeps this
-    // function's control flow explicit for readers/linters.
+    recordLlmCall({
+      provider: this.provider,
+      model,
+      operation,
+      ok: false,
+      latencyMs: Date.now() - started,
+      attempts: Math.min(attempt, totalAttempts),
+      errorCode: lastError.transient ? 'TRANSIENT' : 'ERROR',
+    });
     throw lastError;
   }
 
@@ -160,18 +170,26 @@ export class OllamaClient {
     return error.response.status >= 500;
   }
 
+  // `transient` marks failures worth retrying later (server/timeout/network),
+  // same flag GeminiClient sets, so callers handle both providers alike.
   #normalizeError(error) {
     if (error.response) {
       const status = error.response.status;
       const body = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
-      return new Error(`Ollama request failed with HTTP ${status}: ${(body || '').slice(0, 300)}`);
+      const httpError = new Error(`Ollama request failed with HTTP ${status}: ${(body || '').slice(0, 300)}`);
+      httpError.transient = status >= 500;
+      return httpError;
     }
     if (error.code === 'ECONNABORTED') {
-      return new Error(`Ollama request timed out after ${this.timeoutMs}ms.`);
+      const timeoutError = new Error(`Ollama request timed out after ${this.timeoutMs}ms.`);
+      timeoutError.transient = true;
+      return timeoutError;
     }
     if (error instanceof Error && /not valid JSON|did not include message content/.test(error.message)) {
       return error;
     }
-    return new Error(`Ollama request failed: ${error.message}`);
+    const networkError = new Error(`Ollama request failed: ${error.message}`);
+    networkError.transient = true;
+    return networkError;
   }
 }

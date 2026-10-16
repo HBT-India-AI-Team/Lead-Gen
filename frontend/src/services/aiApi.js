@@ -22,3 +22,8 @@ export function fetchAiBrief() {
 export function fetchAiStatus() {
   return getJson('/api/ai/status');
 }
+
+/** GET /api/ai/usage — measured model calls, latency and tokens per feature over the last `days`. */
+export function fetchAiUsage(days = 7) {
+  return getJson(`/api/ai/usage?days=${encodeURIComponent(days)}`);
+}

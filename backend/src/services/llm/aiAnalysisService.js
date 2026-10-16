@@ -43,7 +43,7 @@ export class AiAnalysisService {
     }
 
     const { system, user } = buildAiAnalysisPrompt(leadAnalysis);
-    const parsed = await this.llmClient.chat({ system, user });
+    const parsed = await this.llmClient.chat({ system, user, operation: 'lead_narrative' });
 
     return this.#validateShape(parsed);
   }

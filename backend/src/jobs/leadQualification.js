@@ -41,6 +41,8 @@ export async function runLeadQualification() {
 
   let qualified = 0;
   let failed = 0;
+  let deferred = 0;
+  let stoppedForQuota = false;
   const usage = { prompt: 0, completion: 0, total: 0 };
 
   for (const record of records) {
@@ -73,6 +75,20 @@ export async function runLeadQualification() {
       });
 
     } catch (error) {
+      // Quota / overload / timeout says nothing about this tender: leave it
+      // pending for the next run instead of recording a permanent failure,
+      // and stop the batch outright once the quota is gone.
+      if (error.code === 'LLM_QUOTA_EXHAUSTED') {
+        stoppedForQuota = true;
+        logger.warn('Model quota exhausted — stopping; remaining tenders stay pending.', { error: error.message });
+        break;
+      }
+      if (error.transient) {
+        deferred++;
+        logger.warn('Temporary model error — left pending for the next run.', { tenderExtractionId: record.tender_extraction_id, error: error.message });
+        continue;
+      }
+
       failed++;
       logger.error('Qualification failed.', {
         tenderExtractionId: record.tender_extraction_id,
@@ -100,9 +116,10 @@ export async function runLeadQualification() {
     }
   }
 
-  logger.info('Batch complete.', { qualified, failed, total: records.length, tokenUsage: usage });
+  const pending = records.length - qualified - failed;
+  logger.info(stoppedForQuota ? 'Batch stopped (quota).' : 'Batch complete.', { qualified, failed, pending, deferred, total: records.length, tokenUsage: usage });
 
-  return { qualified, failed, total: records.length };
+  return { qualified, failed, pending, stoppedForQuota, total: records.length };
 }
 
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === __filename;

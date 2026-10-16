@@ -170,6 +170,7 @@ async function generateWithLlm(prompt, options = {}) {
   try {
     const llmClient = options.llmClient || createLlmClient();
     const draft = await llmClient.chat({
+      operation: 'outreach_email',
       system: 'You write compliant, specific and helpful B2B banking outreach emails for bank relationship managers.',
       user: prompt,
       format: 'text',

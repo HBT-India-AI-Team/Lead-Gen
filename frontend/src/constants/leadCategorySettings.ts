@@ -3,12 +3,11 @@
 // with Settings.tsx owning the tab selection itself).
 //
 // HONESTY NOTES (verified against the backend on 2026-08-15):
-//   • No settings/preferences API exists (no /api/settings route in
-//     src/routes), so these values persist to localStorage only — same as
-//     every other section of the Settings page. A proposed backend route +
-//     migration ships alongside this (src/routes/settings.js,
-//     src/db/migrations/addLeadCategorySettings.js) but is NOT yet wired
-//     into server.js, so nothing here reaches MySQL yet.
+//   • These per-category settings are saved on the server
+//     (GET/PUT /api/settings/lead-categories, src/routes/settings.js) and
+//     shared by everyone; the localStorage copy written below is only the
+//     first paint and the fallback when the API is unreachable. The other
+//     Settings sections (preferences, notifications) are still per-browser.
 //   • All four score types below are deterministic 0-100 scores computed
 //     per company from actual Probe42 fields (see
 //     src/services/scoring/companyProfileScoringService.js), wired through

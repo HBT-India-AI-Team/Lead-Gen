@@ -108,6 +108,7 @@ function buildPrompt(record) {
  */
 export async function qualifyTender(record, { llmClient = createLlmClient() } = {}) {
   const { data, payload, usage } = await llmClient.chatWithMeta({
+    operation: 'lead_qualification_batch',
     system: SYSTEM_PROMPT,
     user: buildPrompt(record),
     schema: LEAD_QUALIFICATION_SCHEMA.schema,
