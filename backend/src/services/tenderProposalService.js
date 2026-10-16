@@ -7,10 +7,9 @@ import { ApiError } from '../utils/ApiError.js';
 // legacy_companies-keyed proposals table/service (src/services/
 // proposalService.js), which this never touches. Reuses
 // generateProposalEmail()/buildProposalSummary() (src/services/
-// emailGenerator.js) unmodified: with no OPENAI_API_KEY configured (the
-// expected setup for this demo), generateProposalEmail() already falls back
-// to a deterministic templated email — exactly the "hardcoded for this
-// demo" behavior asked for, with no new template code needed here.
+// emailGenerator.js) unmodified: generateProposalEmail() drafts the email
+// with Gemini, and falls back to a deterministic templated email when no
+// GEMINI_API_KEY is configured or the call fails.
 
 /**
  * Maps a `tenders` row into the {name, sector, focus_area, tags}-shaped

@@ -160,7 +160,7 @@ const SEED_SOURCES = [
 
 const SEED_PROPOSALS = [
   [1, 'Working Capital facility of $2M to optimize supply chain inventory operations during peak seasons.', 'Dear CEO of LogiTech Solutions,\n\nWe noticed your expanding warehouse footprints and would like to offer a Working Capital Facility tailored for your seasonal demand.\n\nBest regards,\nRelationship Banking Team', 'pending_approval'],
-  [2, 'Cash Management suite with automatic clearing and merchant services integration.', 'Dear CFO of SaaSify Inc,\n\nSBI offers a state-of-the-art corporate cash management system that will streamline your recurring enterprise CRM billing.\n\nBest regards,\nRelationship Banking Team', 'pending_approval'],
+  [2, 'Cash Management suite with automatic clearing and merchant services integration.', 'Dear CFO of SaaSify Inc,\n\nWe offer a state-of-the-art corporate cash management system that will streamline your recurring enterprise CRM billing.\n\nBest regards,\nRelationship Banking Team', 'pending_approval'],
   [3, 'Structured Trade Finance facility including Letter of Credit limits.', 'Dear Director of FinPay Global,\n\nCongratulations on your EU expansion. We offer competitive Trade Finance services, including LCs to secure your transaction flows.\n\nBest regards,\nRelationship Banking Team', 'pending_approval'],
 ];
 

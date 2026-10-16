@@ -93,20 +93,20 @@ async function runPipeline() {
         { name: 'Agri-Infrastructure Loan', trigger: entity.expansion_signal }
       );
       proposalSummary = `Provide Agri-Infrastructure Loan limit of INR 1.2 Cr matching drip irrigation project expansion.`;
-      emailDraft = `Dear Chairman,\n\nWe noticed your FPO's recent approval for multi-district expansion from data.gov.in records. We offer competitive Agri-Infrastructure Loans designed to facilitate modern drip irrigation setup.\n\nLet's schedule a call to review your limits.\n\nBest regards,\nSBI Agricultural Banking Division`;
+      emailDraft = `Dear Chairman,\n\nWe noticed your FPO's recent approval for multi-district expansion from data.gov.in records. We offer competitive Agri-Infrastructure Loans designed to facilitate modern drip irrigation setup.\n\nLet's schedule a call to review your limits.\n\nBest regards,\nAgri Banking Team`;
     } else if (entity.focus_area.includes('Cold')) {
       products.push(
         { name: 'Agri-Warehouse & Cold Storage Loan', trigger: entity.expansion_signal },
         { name: 'Produce Marketing Loan', trigger: 'Inventory liquidity support based on cold chain capacity' }
       );
       proposalSummary = `Structured Term Loan for Cold Chain Infrastructure development and warehouse warehouse limits.`;
-      emailDraft = `Dear Director,\n\nCongratulations on expanding your cold chain storage capacity. We support agribusinesses with custom cold storage construction finance and warehouse receipt financing schemes.\n\nWe would like to present our term sheet for your review.\n\nBest regards,\nSBI Agricultural Banking Division`;
+      emailDraft = `Dear Director,\n\nCongratulations on expanding your cold chain storage capacity. We support agribusinesses with custom cold storage construction finance and warehouse receipt financing schemes.\n\nWe would like to present our term sheet for your review.\n\nBest regards,\nAgri Banking Team`;
     } else {
       products.push(
         { name: 'Agri-Business Working Capital Loan', trigger: entity.expansion_signal }
       );
       proposalSummary = `Seeding working capital credit limit of INR 75 Lakhs for raw materials procurement.`;
-      emailDraft = `Dear Management Team,\n\nCongratulations on receiving your state-wide distribution license. We offer working capital finance and cash credit facilities to bio-fertilizer production units to support business growth.\n\nBest regards,\nSBI Agricultural Banking Division`;
+      emailDraft = `Dear Management Team,\n\nCongratulations on receiving your state-wide distribution license. We offer working capital finance and cash credit facilities to bio-fertilizer production units to support business growth.\n\nBest regards,\nAgri Banking Team`;
     }
 
     console.log(`-> Mapped Predictive Banking Needs: ${products.map(p => p.name).join(', ')}`);

@@ -1,4 +1,6 @@
-const GENERIC_RESEARCH_LINE = 'We have initiated research on your company';
+import { createLlmClient } from './llm/llmClient.js';
+
+const GENERIC_RESEARCH_LINE ='We have initiated research on your company';
 
 const PRODUCT_CATALOG = {
   tender: [
@@ -156,36 +158,18 @@ function buildEmailPrompt(context) {
   ].join('\n');
 }
 
+// Any failure (no GEMINI_API_KEY, quota, network) returns '' so the caller
+// falls back to the deterministic buildFallbackEmail() template.
 async function generateWithLlm(prompt, options = {}) {
-  const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-  if (!apiKey) return '';
-
-  const baseUrl = (options.baseUrl || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-  const model = options.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
-
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.65,
-        messages: [
-          {
-            role: 'system',
-            content: 'You write compliant, specific and helpful B2B banking outreach emails for bank relationship managers.'
-          },
-          { role: 'user', content: prompt }
-        ]
-      })
+    const llmClient = options.llmClient || createLlmClient();
+    const draft = await llmClient.chat({
+      system: 'You write compliant, specific and helpful B2B banking outreach emails for bank relationship managers.',
+      user: prompt,
+      format: 'text',
+      temperature: 0.65
     });
-
-    if (!response.ok) return '';
-    const payload = await response.json();
-    return payload.choices?.[0]?.message?.content || '';
+    return typeof draft === 'string' ? draft : '';
   } catch {
     return '';
   }
