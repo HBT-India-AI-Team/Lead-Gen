@@ -1,7 +1,6 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Min 8 chars, at least one letter and one number (matches the seeded
-// default admin password "Admin@123").
+// Min 8 chars, at least one letter and one number.
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
 export function isValidEmail(email) {
