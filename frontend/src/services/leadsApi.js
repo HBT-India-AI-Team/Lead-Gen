@@ -114,3 +114,11 @@ export async function fetchLeadDecisionTrail(tenderId) {
   });
   return parseJson(response);
 }
+
+/** GET /api/leads/:id/recommendations — recommended banking products + relationship strategy from the lead's AI proposal and the product catalog. */
+export async function fetchLeadRecommendations(tenderId) {
+  const response = await fetch(`${BACKEND_URL}/api/leads/${encodeURIComponent(tenderId)}/recommendations`, {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJson(response);
+}

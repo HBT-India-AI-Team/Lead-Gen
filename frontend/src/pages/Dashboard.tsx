@@ -16,7 +16,6 @@ import {
   Mail,
   RefreshCw,
   Server,
-  Sparkles,
   Monitor,
   Radar,
 } from 'lucide-react';
@@ -24,6 +23,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
+import AiBriefCard from '../components/dashboard/AiBriefCard';
 import { fetchTenders, fetchTenderStates, fetchTenderDistricts, fetchTenderLeadCategories } from '../services/tendersApi';
 import { fetchPipelineSummary, fetchLeadSignalCategories, fetchLeadSignals } from '../services/leadsApi';
 import { BACKEND_URL } from '../constants/dashboard';
@@ -906,22 +906,8 @@ function Dashboard() {
           hero -> pipeline -> actions -> activity zones rather than one
           continuous scroll. */}
       <div className="grid gap-6 border-t border-hairline pt-6">
-        {/* Today's AI Brief — honest empty state kept (no fabricated
-            content), styled the same way Settings treats "Ollama:
-            Unavailable": a clearly labeled placeholder, not a bare sentence. */}
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-tint text-primary">
-              <Sparkles className="h-4 w-4" strokeWidth={2} />
-            </div>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">Today&apos;s AI Brief</h3>
-            <StatusBadge tone="neutral" className="ml-auto">Not connected</StatusBadge>
-          </div>
-          <div className="mt-4 flex items-start gap-3 rounded-lg border border-dashed border-hairline-strong bg-surface-muted p-4">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" strokeWidth={2} />
-            <p className="text-sm text-ink-muted">AI briefing will appear after backend integration.</p>
-          </div>
-        </Card>
+        {/* Today's AI Brief — Gemini, once a day, from the real pipeline. */}
+        <AiBriefCard />
 
       {/* Section 3 — Recent Tender Activity */}
       <Card className="overflow-hidden p-0">

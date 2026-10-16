@@ -47,6 +47,12 @@ export function buildProposalSummary(company, predictiveNeed = {}) {
   return `${context.primaryProduct} proposal for ${company.name}, linked to ${context.achievement.toLowerCase()} and the expected ${context.financialNeed.toLowerCase()}.`;
 }
 
+/** The banking products and financing need the email builder would pitch for this company/signal — no model call. */
+export function recommendBankingProducts(company, predictiveNeed = {}) {
+  const { scenario, financialNeed, products } = buildEmailContext(company, predictiveNeed);
+  return { scenario, financialNeed, products };
+}
+
 export function shouldRegenerateDraft(draft = '') {
   return !draft || draft.includes(GENERIC_RESEARCH_LINE);
 }

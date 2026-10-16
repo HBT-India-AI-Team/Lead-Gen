@@ -12,6 +12,7 @@ import { ensureProposalReviewSchema } from './db/migrations/addProposalReviewSch
 import { ensureCommunicationPreparationSchema } from './db/migrations/addCommunicationPreparationSchema.js';
 import { ensureLeadDecisionEventsSchema } from './db/migrations/addLeadDecisionEventsSchema.js';
 import { ensureMlModelMaintenanceSchema } from './db/migrations/addMlModelMaintenanceSchema.js';
+import { ensureAiBriefSchema } from './db/migrations/addAiBriefSchema.js';
 import { ensureLeadSignalsSchema } from './db/migrations/addLeadSignalsSchema.js';
 import discoveryRoutes from './routes/discovery.js';
 import proposalsRoutes from './routes/proposals.js';
@@ -27,6 +28,7 @@ import tendersRoutes from './routes/tenders.js';
 import tenderProposalsRoutes from './routes/tenderProposals.js';
 import leadsRoutes from './routes/leads.js';
 import mlRoutes from './routes/ml.js';
+import aiRoutes from './routes/ai.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -70,6 +72,7 @@ app.use('/api/tenders', tendersRoutes);
 app.use('/api/tender-proposals', tenderProposalsRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api/ml', mlRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Root route for sanity check
 app.get('/', (req, res) => {
@@ -111,6 +114,7 @@ async function startServer() {
     await ensureCommunicationPreparationSchema();
     await ensureLeadDecisionEventsSchema();
     await ensureMlModelMaintenanceSchema();
+    await ensureAiBriefSchema();
 
     app.listen(PORT, () => {
       console.log(`====================================================`);
