@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './db/init.js';
 import { ensureDocumentProcessingSchema } from './db/migrations/addDocumentProcessingSchema.js';
-import { ensureSbiCustomerSchema } from './db/migrations/addSbiCustomerSchema.js';
+import { ensureCustomerCheckSchema } from './db/migrations/addCustomerCheckSchema.js';
 import { ensureProbe42DemoSchema } from './db/migrations/addProbe42DemoSchema.js';
 import { ensureTenderProposalSchema } from './db/migrations/addTenderProposalSchema.js';
 import { ensureLeadQualificationSchema } from './db/migrations/addLeadQualificationSchema.js';
@@ -31,9 +31,23 @@ import mlRoutes from './routes/ml.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Configure CORS to allow the React frontend running on port 3000
+// Local dev origins are always allowed; deployed frontend origins (e.g. the
+// Firebase Hosting URL) are added via CORS_ORIGINS as a comma-separated
+// list, so a new environment needs no code change.
+const LOCAL_ORIGINS = [
+  'http://localhost:3000', 'http://127.0.0.1:3000',
+  'http://localhost:3001', 'http://127.0.0.1:3001',
+  'http://localhost:3002', 'http://127.0.0.1:3002',
+  'http://localhost:5173', 'http://127.0.0.1:5173'
+];
+
+const configuredOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:3002', 'http://127.0.0.1:3002'],
+  origin: [...LOCAL_ORIGINS, ...configuredOrigins],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -82,12 +96,12 @@ async function startServer() {
     await initializeDatabase();
 
     // Ensures the tenders-workflow tables (tenders itself, plus the
-    // SBI-check/health-check/proposal demo tables) exist before the server
+    // customer-check/health-check/proposal demo tables) exist before the server
     // starts accepting requests — same idempotent guarded-ALTER pattern as
     // initializeDatabase() above, just for tables owned by jobs/features
     // that run independently of server boot rather than schema.sql.
     await ensureDocumentProcessingSchema();
-    await ensureSbiCustomerSchema();
+    await ensureCustomerCheckSchema();
     await ensureProbe42DemoSchema();
     await ensureTenderProposalSchema();
     await ensureLeadQualificationSchema();

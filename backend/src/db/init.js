@@ -11,11 +11,19 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_NAME = process.env.DB_NAME || 'sbi_leadgen';
+const DB_NAME = process.env.DB_NAME || 'leadgen';
 
+// Mirrors the socket/TCP split in src/config/database.js: on Cloud SQL the
+// server is reached over a Unix socket, and this file opens its own
+// connection (without a database selected) rather than using that pool, so
+// it has to make the same choice independently.
 const baseConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
+  ...(process.env.DB_SOCKET
+    ? { socketPath: process.env.DB_SOCKET }
+    : {
+        host: process.env.DB_HOST || 'localhost',
+        port: Number(process.env.DB_PORT) || 3306,
+      }),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
 };

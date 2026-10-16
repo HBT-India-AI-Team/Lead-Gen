@@ -1,15 +1,35 @@
 import { exec, get, run } from '../../config/database.js';
 
-// Demo/stand-in dataset for the "SBI Customer Check" workflow step. There is
-// no real SBI customer-master integration in this system — matching lives
-// entirely behind src/repositories/sbiCustomerRepository.js's
+// Demo/stand-in dataset for the "Customer Check" workflow step. There is
+// no real customer-master integration in this system — matching lives
+// entirely behind src/repositories/customerCheckRepository.js's
 // findByCompanyName(), so swapping this seeded table for a real customer
 // data source later never requires touching the service/controller/route/
 // frontend layers above it.
 
-async function createSbiCustomersTable() {
+// Databases created before the table was renamed still hold the data under
+// the old name, so carry it across rather than creating an empty table
+// beside it. Harmless and skipped on a fresh database.
+async function renameLegacyTableIfPresent() {
+  const legacy = await get(
+    `SELECT COUNT(*) AS count FROM information_schema.tables
+      WHERE table_schema = DATABASE() AND table_name = 'sbi_existing_customers'`
+  );
+  if (!legacy?.count) return;
+
+  const current = await get(
+    `SELECT COUNT(*) AS count FROM information_schema.tables
+      WHERE table_schema = DATABASE() AND table_name = 'existing_customers'`
+  );
+  if (current?.count) return;
+
+  console.log('[DB Migrate] Renaming sbi_existing_customers -> existing_customers...');
+  await exec('RENAME TABLE sbi_existing_customers TO existing_customers');
+}
+
+async function createExistingCustomersTable() {
   await exec(`
-    CREATE TABLE IF NOT EXISTS sbi_existing_customers (
+    CREATE TABLE IF NOT EXISTS existing_customers (
       id INT AUTO_INCREMENT PRIMARY KEY,
       customer_name VARCHAR(255) NOT NULL,
       cin VARCHAR(50) NULL,
@@ -32,22 +52,23 @@ const DEMO_CUSTOMERS = [
   { customer_name: 'Greenfield AgriExports Pvt Ltd', cin: 'U01100GJ2010PTC060112', segment: 'Corporate', relationship_manager: 'Vikram Shah', customer_since: '2013-05-30' },
 ];
 
-async function seedSbiCustomersIfEmpty() {
-  const row = await get('SELECT COUNT(*) AS count FROM sbi_existing_customers');
+async function seedExistingCustomersIfEmpty() {
+  const row = await get('SELECT COUNT(*) AS count FROM existing_customers');
   if (row?.count > 0) return;
 
-  console.log('[DB Migrate] Seeding sbi_existing_customers demo dataset...');
+  console.log('[DB Migrate] Seeding existing_customers demo dataset...');
 
   for (const customer of DEMO_CUSTOMERS) {
     await run(
-      `INSERT INTO sbi_existing_customers (customer_name, cin, segment, relationship_manager, customer_since)
+      `INSERT INTO existing_customers (customer_name, cin, segment, relationship_manager, customer_since)
        VALUES (?, ?, ?, ?, ?)`,
       [customer.customer_name, customer.cin, customer.segment, customer.relationship_manager, customer.customer_since]
     );
   }
 }
 
-export async function ensureSbiCustomerSchema() {
-  await createSbiCustomersTable();
-  await seedSbiCustomersIfEmpty();
+export async function ensureCustomerCheckSchema() {
+  await renameLegacyTableIfPresent();
+  await createExistingCustomersTable();
+  await seedExistingCustomersIfEmpty();
 }

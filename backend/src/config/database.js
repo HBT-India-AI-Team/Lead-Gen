@@ -3,12 +3,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// On Cloud SQL (Cloud Run) MySQL is reached over a Unix socket rather than
+// TCP, so DB_SOCKET takes precedence when set and host/port are omitted
+// entirely. Local development sets no DB_SOCKET and keeps the TCP path.
 const poolConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
+  ...(process.env.DB_SOCKET
+    ? { socketPath: process.env.DB_SOCKET }
+    : {
+        host: process.env.DB_HOST || 'localhost',
+        port: Number(process.env.DB_PORT) || 3306,
+      }),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'sbi_leadgen',
+  database: process.env.DB_NAME || 'leadgen',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -29,7 +36,7 @@ export async function testConnection() {
     return true;
   } catch (error) {
     console.error('[MySQL] Connection failed:', error.message);
-    throw new Error(`Unable to connect to MySQL database "${poolConfig.database}" at ${poolConfig.host}:${poolConfig.port} — ${error.message}`);
+    throw new Error(`Unable to connect to MySQL database "${poolConfig.database}" at ${poolConfig.socketPath || `${poolConfig.host}:${poolConfig.port}`} — ${error.message}`);
   } finally {
     if (connection) connection.release();
   }

@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+
+# Secrets never belong in an image — Cloud Run injects these from Secret
+# Manager at runtime.
+.env
+.env.*
+!.env.example
+
+# One-off exploration scripts kept for reference; not part of the service.
+scripts/_explore
+
+.git
+.gitignore
+*.md

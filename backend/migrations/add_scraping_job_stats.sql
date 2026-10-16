@@ -6,7 +6,7 @@
 -- and src/jobs/mcaIngest.js, which still read/write only that column.
 --
 -- Run once against an existing database:
---   mysql -u <user> -p sbi_leadgen < migrations/add_scraping_job_stats.sql
+--   mysql -u <user> -p leadgen < migrations/add_scraping_job_stats.sql
 
 ALTER TABLE scraping_jobs ADD COLUMN cards_scanned INT DEFAULT 0 AFTER records_found;
 ALTER TABLE scraping_jobs ADD COLUMN inserted_count INT DEFAULT 0 AFTER cards_scanned;

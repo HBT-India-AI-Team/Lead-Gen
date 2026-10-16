@@ -1,4 +1,4 @@
-import { all, run } from "../db/mysql.js";
+import { all, run } from "../config/database.js";
 
 async function migrate() {
 

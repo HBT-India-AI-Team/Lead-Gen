@@ -24,14 +24,14 @@ import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
 import type { StatusTone } from '../components/ui/StatusBadge';
 import DecisionTrail from '../components/leads/DecisionTrail';
-import { fetchTenderById, fetchSbiCheck, fetchHealthCheck, fetchProposals, createProposal, approveProposal } from '../services/tendersApi';
+import { fetchTenderById, fetchCustomerCheck, fetchHealthCheck, fetchProposals, createProposal, approveProposal } from '../services/tendersApi';
 import { formatDate, tenderTitleFrom, tenderLocation, tenderStatus } from '../utils/tenderFormatters';
 
-// Real GET /api/tenders/:tenderId/sbi-check response shape (verified live —
-// see src/controllers/tenderController.js's sbiCheck handler). matchedCustomer
+// Real GET /api/tenders/:tenderId/customer-check response shape (verified live —
+// see src/controllers/tenderController.js's customerCheck handler). matchedCustomer
 // is null whenever isExistingCustomer is false; every field on it below is a
-// real column on sbi_existing_customers, not invented.
-interface SbiCheckResult {
+// real column on existing_customers, not invented.
+interface CustomerCheckResult {
   tenderId: string;
   companyChecked: string | null;
   isExistingCustomer: boolean;
@@ -153,9 +153,9 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function SbiCheckCard({ tenderId }: { tenderId: string }) {
+function CustomerCheckCard({ tenderId }: { tenderId: string }) {
   const mutation = useMutation({
-    mutationFn: () => fetchSbiCheck(tenderId) as Promise<SbiCheckResult>,
+    mutationFn: () => fetchCustomerCheck(tenderId) as Promise<CustomerCheckResult>,
   });
 
   const result = mutation.data;
@@ -1018,7 +1018,7 @@ function LeadDetails() {
         </SectionCard>
       </div>
 
-      <SbiCheckCard tenderId={tender.tender_id} />
+      <CustomerCheckCard tenderId={tender.tender_id} />
 
       <HealthCheckCard tenderId={tender.tender_id} />
 

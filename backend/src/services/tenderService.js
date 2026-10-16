@@ -10,7 +10,7 @@ export async function listTenders(query = {}) {
  * Looks up a tender by its natural key (tender_id, e.g. "TRBPxjC-175970"),
  * not the numeric `id` PK — every URL/link in this app is built off
  * tender_id. Throws ApiError.notFound rather than returning undefined, so
- * every caller (controller, sbiCustomerCheckService, healthCheckService,
+ * every caller (controller, customerCheckService, healthCheckService,
  * tenderProposalService) gets the same 404 behavior for free instead of
  * each having to null-check.
  */
